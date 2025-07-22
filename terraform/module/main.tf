@@ -35,7 +35,7 @@ module "eks" {
   source  = "terraform-aws-modules/eks/aws"
   version = "~> 20.0"
 
-  cluster_name    = "main-eks-cluster"
+  cluster_name    = "${var.environment.name}-eks-cluster"
   cluster_version = "1.29"
 
   vpc_id     = module.vpc.vpc_id
@@ -44,8 +44,7 @@ module "eks" {
   # This section defines your 2-node EC2 instance group.
   eks_managed_node_groups = {
     general_purpose = {
-      instance_types = ["${var.instance_type}"] # variable t3.micro Free Tier eligible instance type.
-      cluster_name = "${var.environment.name}-eks-cluster"
+      instance_types = [var.instance_type] # variable t3.micro Free Tier eligible instance type.
 
       # --- fixed-size, 2-node cluster -------------------
       min_size       = var.min_size
