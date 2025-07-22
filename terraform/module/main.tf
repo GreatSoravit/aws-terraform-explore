@@ -125,7 +125,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "this" {
 }
 
 resource "aws_s3_bucket_lifecycle_configuration" "this" {
-  bucket = aws_s3_bucket.this.id
+  bucket = aws_s3_bucket.application_bucket.id
 
   rule {
     id     = "transition-to-infrequent-access"
