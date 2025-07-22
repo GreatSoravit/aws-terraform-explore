@@ -1,7 +1,6 @@
 # Region
 data "aws_region" "current" {}
 
-
 # This module creates a best-practice VPC, subnets, route tables,
 # an internet gateway, and a NAT gateway for private subnets.
 module "vpc" {
@@ -126,11 +125,14 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "this" {
 }
 
 resource "aws_s3_bucket_lifecycle_configuration" "this" {
-  bucket = aws_s3_bucket.application_bucket.id
+  bucket = aws_s3_bucket.this.id
 
   rule {
     id     = "transition-to-infrequent-access"
     status = "Enabled"
+
+    # filter block to apply the rule to all objects.
+    filter {}
 
     transition {
       days          = 30
