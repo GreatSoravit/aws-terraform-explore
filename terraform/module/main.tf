@@ -100,6 +100,7 @@ resource "aws_security_group" "ssh_access_sg" {
 resource "aws_s3_bucket" "application_bucket" {
   bucket        = "s3-aws-terraform-explore" # S3 bucket names must be globally unique
   force_destroy = true                       # Allows deletion even if files exist (for dev/test buckets)
+  acl           = "private"
 
   tags = {
     Name        = "s3-bucket"
