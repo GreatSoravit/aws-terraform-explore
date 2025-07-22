@@ -12,12 +12,12 @@ module "eks" {
   # This section defines your 2-node EC2 instance group.
   eks_managed_node_groups = {
     general_purpose = {
-      instance_types = ["t3.micro"] # Free Tier eligible instance type.
+      instance_types = ["${var.instance_type}"] # variable t3.micro Free Tier eligible instance type.
 
       # --- fixed-size, 2-node cluster -------------------
-      min_size       = 2
-      max_size       = 2
-      desired_size   = 2
+      min_size       = var.min_size
+      max_size       = var.max_size
+      desired_size   = var.desired_size
       # --------------------------------------------------
 
       # Attach the additional security group
