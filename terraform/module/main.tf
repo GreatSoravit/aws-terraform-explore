@@ -1,3 +1,7 @@
+# Region
+data "aws_region" "current" {}
+
+
 # This module creates a best-practice VPC, subnets, route tables,
 # an internet gateway, and a NAT gateway for private subnets.
 module "vpc" {
@@ -138,7 +142,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "this" {
     }
 
     noncurrent_version_expiration {
-      days = 30
+      noncurrent_days = 30
     }
   }
 }
