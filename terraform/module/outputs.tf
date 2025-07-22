@@ -10,5 +10,5 @@ output "s3_bucket_name" {
 
 output "configure_kubectl" {
   description = "Run this command to configure kubectl to connect to the EKS cluster."
-  value       = "aws eks update-kubeconfig --region ${module.eks.cluster_region} --name ${module.eks.cluster_name}"
+  value       = "aws eks update-kubeconfig --region ${data.aws_region.current.name} --name ${module.eks.cluster_name}"
 }
