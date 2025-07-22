@@ -1,4 +1,4 @@
-name: Deploy AWS Infrastructure
+name: 'Terraform CI/CD'
 
 on:
   push:
