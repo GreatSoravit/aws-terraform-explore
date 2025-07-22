@@ -38,3 +38,11 @@ jobs:
       - name: Terraform Apply
         run: terraform apply -auto-approve
         working-directory: ./aws-terraform-explore
+        
+      # --- Application Deployment Steps (kubectl) ---
+  
+      - name: Configure kubectl
+        run: $(terraform output -raw configure_kubectl)
+  
+      - name: Deploy Application to EKS
+        run: kubectl apply -f kubernetes/deployment.yaml
