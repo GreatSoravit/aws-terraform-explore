@@ -53,8 +53,7 @@ module "eks" {
       # --------------------------------------------------
 
       # Attach the additional security group
-      attach_cluster_primary_security_group = false # This is often needed
-      vpc_security_group_ids                = [aws_security_group.ssh_access_sg.id]
+      additional_security_group_ids = [aws_security_group.ssh_access_sg.id]
     }
   }
 
