@@ -31,20 +31,21 @@ jobs:
 
       - name: Terraform Init
         run: terraform init
-        working-directory: ./aws-terraform-explore
+        working-directory: terraform/environment/dev
 
       - name: Terraform Plan
         run: terraform plan
-        working-directory: ./aws-terraform-explore
+        working-directory: terraform/environment/dev
 
       - name: Terraform Apply
         run: terraform apply -auto-approve
-        working-directory: ./aws-terraform-explore
+        working-directory: terraform/environment/dev
         
       # --- Application Deployment Steps (kubectl) ---
   
       - name: Configure kubectl
         run: $(terraform output -raw configure_kubectl)
+        working-directory: terraform/environment/dev
   
       - name: Deploy Application to EKS
         run: kubectl apply -f kubernetes/deployment.yaml
