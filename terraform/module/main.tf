@@ -45,6 +45,8 @@ module "eks" {
   eks_managed_node_groups = {
     general_purpose = {
       instance_types = [var.instance_type] # variable t3.micro Free Tier eligible instance type.
+      disk_size = 8
+      volume_type = "gp3"
 
       # --- fixed-size, 2-node cluster -------------------
       min_size       = var.min_size
