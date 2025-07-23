@@ -100,7 +100,7 @@ resource "aws_iam_role_policy_attachment" "amazon_eks_cni_policy" {
 
 # This section defines 2-node EC2 instance group.
 resource "aws_eks_node_group" "general_purpose" {
-  cluster_name    = module.eks.cluster_id
+  cluster_name    = module.eks.cluster_name
   node_group_name = "general-purpose"
 
   node_role_arn   = aws_iam_role.eks_nodes.arn
