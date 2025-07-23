@@ -43,16 +43,73 @@ module "eks" {
   eks_managed_node_groups = {}
 }
 
+resource "aws_launch_template" "eks_nodes" {
+  name_prefix = "eks-nodes-"
+  
+  # The instance type is now defined here.
+  instance_type = var.instance_type
+
+  # Attach the additional security group
+  additional_security_group_ids = [aws_security_group.ssh_access_sg.id]
+
+  # Define the custom block device (EBS volume) settings.
+  block_device_mappings {
+    device_name = "/dev/xvda" # The root device for Amazon Linux
+    ebs {
+      volume_size = 8
+      volume_type = "gp3"
+      delete_on_termination = true
+    }
+  }
+}
+
+# Create the IAM role that EKS nodes will use.
+resource "aws_iam_role" "eks_nodes" {
+  name = "eks-node-group-role"
+
+  # This policy allows EC2 instances to assume this role.
+  assume_role_policy = jsonencode({
+    Version   = "2012-10-17",
+    Statement = [
+      {
+        Action    = "sts:AssumeRole",
+        Effect    = "Allow",
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      },
+    ]
+  })
+}
+
+# Attach the required AWS-managed policies to the role.
+resource "aws_iam_role_policy_attachment" "amazon_eks_worker_node_policy" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
+  role       = aws_iam_role.eks_nodes.name
+}
+
+resource "aws_iam_role_policy_attachment" "amazon_ec2_container_registry_read_only" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+  role       = aws_iam_role.eks_nodes.name
+}
+
+resource "aws_iam_role_policy_attachment" "amazon_eks_cni_policy" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+  role       = aws_iam_role.eks_nodes.name
+}
+
 # This section defines 2-node EC2 instance group.
 resource "aws_eks_node_group" "general_purpose" {
   cluster_name    = module.eks.cluster_id
   node_group_name = "general-purpose"
-  node_role_arn   = module.eks.eks_managed_node_group_iam_role_arn
+
+  node_role_arn   = aws_iam_role.eks_nodes.arn
   subnet_ids      = module.vpc.private_subnets
   
-  instance_types = [var.instance_type] # variable t3.micro Free Tier eligible instance type.
-  volume_type = "gp3"
-  disk_size      = 8
+  launch_template {
+    id      = aws_launch_template.eks_nodes.id
+    version = aws_launch_template.eks_nodes.latest_version
+  }
 
   scaling_config {
     desired_size = var.desired_size
@@ -60,11 +117,13 @@ resource "aws_eks_node_group" "general_purpose" {
     min_size     = var.min_size
   }
 
-  # Attach the additional security group
-  additional_security_group_ids = [aws_security_group.ssh_access_sg.id]
-
   # This ensures the control plane is ready before creating nodes.
-  depends_on = [module.eks]
+  depends_on = [
+    module.eks,
+    aws_iam_role_policy_attachment.amazon_eks_worker_node_policy,
+    aws_iam_role_policy_attachment.amazon_ec2_container_registry_read_only,
+    aws_iam_role_policy_attachment.amazon_eks_cni_policy,
+]
 }
 
 # Create the add-on, making it depend on the node group.
