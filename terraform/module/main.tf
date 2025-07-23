@@ -128,7 +128,7 @@ resource "aws_eks_node_group" "general_purpose" {
 
 # Create the add-on, making it depend on the node group.
 resource "aws_eks_addon" "ebs_csi_driver" {
-  cluster_name = module.eks.cluster_id
+  cluster_name = module.eks.cluster_name
   addon_name   = "aws-ebs-csi-driver"
 
   # This ensures nodes are ready before installing the add-on.
