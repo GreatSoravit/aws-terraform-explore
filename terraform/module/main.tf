@@ -40,44 +40,40 @@ module "eks" {
 
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
-
-  # This section defines your 2-node EC2 instance group.
-  eks_managed_node_groups = {
-    general_purpose = {
-      instance_types = [var.instance_type] # variable t3.micro Free Tier eligible instance type.
-      disk_size = 8
-      volume_type = "gp3"
-
-      # --- fixed-size, 2-node cluster -------------------
-      min_size       = var.min_size
-      max_size       = var.max_size
-      desired_size   = var.desired_size
-      # --------------------------------------------------
-
-      # Attach the additional security group
-      additional_security_group_ids = [aws_security_group.ssh_access_sg.id]
-    }
-
-# This makes the add-ons wait for the node group to be created first.
-  manage_aws_auth_configmap = true # Often needed with this setup
-  
-  cluster_addons = {
-    aws-ebs-csi-driver = {
-      # This is the key: it references the node group defined above.
-      depends_on = [
-        module.eks.eks_managed_node_group["general_purpose"]
-      ]
-    }
-  }
+  eks_managed_node_groups = {}
 }
 
-  # This add-on installs the AWS EBS CSI Driver, which is the recommended way
-  # to manage and mount EBS volumes for pods running in your EKS cluster.
-  cluster_addons = {
-    aws-ebs-csi-driver = {
-      most_recent = true
-    }
+# This section defines 2-node EC2 instance group.
+resource "aws_eks_node_group" "general_purpose" {
+  cluster_name    = module.eks.cluster_id
+  node_group_name = "general-purpose"
+  node_role_arn   = module.eks.eks_managed_node_group_iam_role_arn
+  subnet_ids      = module.vpc.private_subnets
+  
+  instance_types = [var.instance_type] # variable t3.micro Free Tier eligible instance type.
+  volume_type = "gp3"
+  disk_size      = 8
+
+  scaling_config {
+    desired_size = var.desired_size
+    max_size     = var.max_size
+    min_size     = var.min_size
   }
+
+  # Attach the additional security group
+  additional_security_group_ids = [aws_security_group.ssh_access_sg.id]
+
+  # This ensures the control plane is ready before creating nodes.
+  depends_on = [module.eks]
+}
+
+# Create the add-on, making it depend on the node group.
+resource "aws_eks_addon" "ebs_csi_driver" {
+  cluster_name = module.eks.cluster_id
+  addon_name   = "aws-ebs-csi-driver"
+
+  # This ensures nodes are ready before installing the add-on.
+  depends_on = [aws_eks_node_group.general_purpose]
 }
 
 # Data source to get your current IP address
