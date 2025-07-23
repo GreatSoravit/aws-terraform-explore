@@ -57,6 +57,17 @@ module "eks" {
       # Attach the additional security group
       additional_security_group_ids = [aws_security_group.ssh_access_sg.id]
     }
+
+# This makes the add-ons wait for the node group to be created first.
+  manage_aws_auth_configmap = true # Often needed with this setup
+  
+  cluster_addons = {
+    aws-ebs-csi-driver = {
+      # This is the key: it references the node group defined above.
+      depends_on = [
+        module.eks.eks_managed_node_group["general_purpose"]
+      ]
+    }
   }
 
   # This add-on installs the AWS EBS CSI Driver, which is the recommended way
