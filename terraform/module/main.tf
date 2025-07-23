@@ -69,6 +69,7 @@ module "eks" {
       ]
     }
   }
+}
 
   # This add-on installs the AWS EBS CSI Driver, which is the recommended way
   # to manage and mount EBS volumes for pods running in your EKS cluster.
