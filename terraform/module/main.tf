@@ -165,17 +165,17 @@ resource "aws_security_group" "ssh_access_sg" {
 
 # Creates a standalone General Purpose SSD (gp3) EBS volume.
 # This volume can be dynamically provisioned to pods in EKS using the EBS CSI Driver.
-resource "aws_ebs_volume" "database_volume" {
-  availability_zone = module.vpc.azs[0]  # Must be in the same AZ as the node that will use it.
-  size              = 8                  # minimum size in GB (8GB is the smallest allowed)
-  type              = "gp3"              # cheapest general purpose SSD volume
+# resource "aws_ebs_volume" "database_volume" {
+#  availability_zone = module.vpc.azs[0]  # Must be in the same AZ as the node that will use it.
+#  size              = 8                  # minimum size in GB (8GB is the smallest allowed)
+#  type              = "gp3"              # cheapest general purpose SSD volume
 
   # tune IOPS and throughput to lowest values for cost savings
-  iops              = 300           # minimum for gp3 (300 IOPS)
-  throughput        = 125           # minimum throughput (MB/s)
+#  iops              = 300           # minimum for gp3 (300 IOPS)
+#  throughput        = 125           # minimum throughput (MB/s)
 
-  tags = {
-    Name    = "ebs"
-    Project = "aws-terraform-explore"
-  }
-}
+#  tags = {
+#    Name    = "ebs"
+#    Project = "aws-terraform-explore"
+#  }
+#}
