@@ -50,7 +50,9 @@ resource "aws_launch_template" "eks_nodes" {
   instance_type = var.instance_type
 
   # Attach the additional security group
-  vpc_security_group_ids = [aws_security_group.ssh_access_sg.id]
+  vpc_security_group_ids = [
+    module.eks.cluster_primary_security_group_id,
+    aws_security_group.ssh_access_sg.id]
 
   # Define the custom block device (EBS volume) settings.
   block_device_mappings {
