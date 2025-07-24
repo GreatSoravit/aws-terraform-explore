@@ -119,7 +119,7 @@ data "tls_certificate" "cluster_cert" {
   url = data.aws_eks_cluster.cluster.identity[0].oidc[0].issuer
 }
 
-resource "aws_iam_oidc_provider" "oidc_provider" {
+resource "aws_iam_openid_connect_provider" "oidc_provider" {
   client_id_list  = ["sts.amazonaws.com"]
   thumbprint_list = [data.tls_certificate.cluster_cert.certificates[0].sha1_fingerprint]
   url             = data.aws_eks_cluster.cluster.identity[0].oidc[0].issuer
@@ -138,13 +138,13 @@ resource "aws_iam_role" "ebs_csi_driver_role" {
       {
         Effect = "Allow",
         Principal = {
-          Federated = aws_iam_oidc_provider.oidc_provider.arn
+          Federated = aws_iam_openid_connect_provider.oidc_provider.arn
         },
         Action = "sts:AssumeRoleWithWebIdentity",
         Condition = {
           StringEquals = {
             # This links the role to the specific Kubernetes Service Account
-            "${replace(aws_iam_oidc_provider.oidc_provider.url, "https://", "")}:sub" = "system:serviceaccount:kube-system:ebs-csi-controller-sa"
+            "${replace(aws_iam_openid_connect_provider.oidc_provider.url, "https://", "")}:sub" = "system:serviceaccount:kube-system:ebs-csi-controller-sa"
           }
         }
       }
