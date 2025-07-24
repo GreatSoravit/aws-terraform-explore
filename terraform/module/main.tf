@@ -111,21 +111,17 @@ resource "aws_eks_node_group" "general_purpose" {
   depends_on = [module.eks]
 }
 #--------------------------------------------------------------------------------
-data "aws_eks_cluster" "cluster" {
-  name = module.eks.cluster_name
-}
-
 data "tls_certificate" "cluster_cert" {
-  url = data.aws_eks_cluster.cluster.identity[0].oidc[0].issuer
+  url = module.eks.cluster_oidc_issuer_url
 }
 
 resource "aws_iam_openid_connect_provider" "oidc_provider" {
   client_id_list  = ["sts.amazonaws.com"]
   thumbprint_list = [data.tls_certificate.cluster_cert.certificates[0].sha1_fingerprint]
-  url             = data.aws_eks_cluster.cluster.identity[0].oidc[0].issuer
+  url             = module.eks.cluster_oidc_issuer_url
 
   tags = {
-    Name = "${data.aws_eks_cluster.cluster.name}-oidc-provider"
+    Name = "${module.eks.cluster_name}-oidc-provider"
   }
 }
 
