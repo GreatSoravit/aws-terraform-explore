@@ -111,9 +111,6 @@ resource "aws_eks_node_group" "general_purpose" {
   depends_on = [module.eks]
 }
 #--------------------------------------------------------------------------------
-data "tls_certificate" "cluster_cert" {
-  url = module.eks.cluster_oidc_issuer_url
-}
 
 resource "aws_iam_role" "ebs_csi_driver_role" {
   name = "EKS_EBS_CSI_Driver_Role"
