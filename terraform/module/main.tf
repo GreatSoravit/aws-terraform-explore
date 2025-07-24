@@ -59,8 +59,6 @@ module "eks" {
     provider_key_arn = aws_kms_key.eks_secrets.arn
     resources        = ["secrets"]
   }
-
-  ]
 }
 
 resource "aws_launch_template" "eks_nodes" {
