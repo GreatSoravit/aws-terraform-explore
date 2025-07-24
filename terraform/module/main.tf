@@ -31,7 +31,7 @@ module "vpc" {
 }
 
 resource "aws_security_group" "additional" {
-  name_prefix = "${local.name}-additional"
+  name_prefix = "aws-terraform-explore-additional"
   vpc_id      = module.vpc.vpc_id
 
   ingress {
@@ -45,7 +45,7 @@ resource "aws_security_group" "additional" {
     ]
   }
 
-  tags = merge(local.tags, { Name = "${local.name}-additional" })
+  tags = { Name = "aws-terraform-explore" }
 }
 
 data "aws_iam_policy" "additional" {
