@@ -29,6 +29,19 @@ module "vpc" {
     "kubernetes.io/role/internal-elb"        = "1"
   }
 }
+--------------------------------------------------------------------------------
+# Create a KMS key for EKS secrets encryption
+resource "aws_kms_key" "eks_secrets" {
+  description             = "KMS key for EKS cluster secrets encryption"
+  deletion_window_in_days = 7
+  enable_key_rotation     = true
+}
+
+# Create an alias for the key to make it easier to reference
+resource "aws_kms_alias" "eks_secrets" {
+  name          = "alias/eks-secrets-key"
+  target_key_id = aws_kms_key.eks_secrets.key_id
+}
 
 # This module creates the EKS control plane, node group, and all necessary IAM roles.
 module "eks" {
@@ -41,6 +54,11 @@ module "eks" {
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
   eks_managed_node_groups = {}
+
+  cluster_encryption_config = {
+    provider_key_arn = aws_kms_key.eks_secrets.arn
+    resources        = ["secrets"]
+  }
 }
 
 resource "aws_launch_template" "eks_nodes" {
@@ -64,48 +82,18 @@ resource "aws_launch_template" "eks_nodes" {
     }
   }
 }
-
+--------------------------------------------------------------------------------
 # Create the IAM role that EKS nodes will use.
-resource "aws_iam_role" "eks_nodes" {
+data "aws_iam_role" "eks_nodes" {
   name = "eks-node-group-role"
-
-  # This policy allows EC2 instances to assume this role.
-  assume_role_policy = jsonencode({
-    Version   = "2012-10-17",
-    Statement = [
-      {
-        Action    = "sts:AssumeRole",
-        Effect    = "Allow",
-        Principal = {
-          Service = "ec2.amazonaws.com"
-        }
-      },
-    ]
-  })
 }
-
-# Attach the required AWS-managed policies to the role.
-resource "aws_iam_role_policy_attachment" "amazon_eks_worker_node_policy" {
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
-  role       = aws_iam_role.eks_nodes.name
-}
-
-resource "aws_iam_role_policy_attachment" "amazon_ec2_container_registry_read_only" {
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-  role       = aws_iam_role.eks_nodes.name
-}
-
-resource "aws_iam_role_policy_attachment" "amazon_eks_cni_policy" {
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
-  role       = aws_iam_role.eks_nodes.name
-}
-
+--------------------------------------------------------------------------------
 # This section defines 2-node EC2 instance group.
 resource "aws_eks_node_group" "general_purpose" {
   cluster_name    = module.eks.cluster_name
   node_group_name = "general-purpose"
 
-  node_role_arn   = aws_iam_role.eks_nodes.arn
+  node_role_arn   = data.aws_iam_role.eks_nodes.arn
   subnet_ids      = module.vpc.private_subnets
   
   launch_template {
@@ -127,16 +115,74 @@ resource "aws_eks_node_group" "general_purpose" {
     aws_iam_role_policy_attachment.amazon_eks_cni_policy,
 ]
 }
+--------------------------------------------------------------------------------
+data "aws_eks_cluster" "cluster" {
+  name = module.eks.cluster_name
+}
+
+data "tls_certificate" "cluster_cert" {
+  url = data.aws_eks_cluster.cluster.identity[0].oidc[0].issuer
+}
+
+resource "aws_iam_oidc_provider" "oidc_provider" {
+  client_id_list  = ["sts.amazonaws.com"]
+  thumbprint_list = [data.tls_certificate.cluster_cert.certificates[0].sha1_fingerprint]
+  url             = data.aws_eks_cluster.cluster.identity[0].oidc[0].issuer
+
+  tags = {
+    Name = "${data.aws_eks_cluster.cluster.name}-oidc-provider"
+  }
+}
+
+resource "aws_iam_role" "ebs_csi_driver_role" {
+  name = "EKS_EBS_CSI_Driver_Role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Principal = {
+          Federated = aws_iam_oidc_provider.oidc_provider.arn
+        },
+        Action = "sts:AssumeRoleWithWebIdentity",
+        Condition = {
+          StringEquals = {
+            # This links the role to the specific Kubernetes Service Account
+            "${replace(aws_iam_oidc_provider.oidc_provider.url, "https://", "")}:sub" = "system:serviceaccount:kube-system:ebs-csi-controller-sa"
+          }
+        }
+      }
+    ]
+  })
+}
+
+# Use a data source to find the policy created in the console
+data "aws_iam_policy" "ebs_csi_driver_policy" {
+  arn = "arn:aws:iam::656697807925:policy/EKS_EBS_CSI_Driver_Policy"
+}
+
+# The attachment now uses the data source
+resource "aws_iam_role_policy_attachment" "ebs_csi_driver_attach" {
+  policy_arn = data.aws_iam_policy.ebs_csi_driver_policy.arn
+  role       = aws_iam_role.ebs_csi_driver_role.name
+}
 
 # Create the add-on, making it depend on the node group.
 resource "aws_eks_addon" "ebs_csi_driver" {
   cluster_name = module.eks.cluster_name
   addon_name   = "aws-ebs-csi-driver"
 
-  # This ensures nodes are ready before installing the add-on.
-  depends_on = [aws_eks_node_group.general_purpose]
-}
+  # link the addon to the new IAM role
+  service_account_role_arn = aws_iam_role.ebs_csi_driver_role.arn
 
+  # This ensures nodes are ready before installing the add-on.
+  depends_on = [
+    aws_iam_role_policy_attachment.ebs_csi_driver_attach,
+    aws_eks_node_group.general_purpose
+    ]
+}
+--------------------------------------------------------------------------------
 # Data source to get your current IP address
 data "http" "my_ip" {
   url = "http://ipv4.icanhazip.com"
