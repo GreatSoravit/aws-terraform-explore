@@ -115,12 +115,6 @@ data "tls_certificate" "cluster_cert" {
   url = module.eks.cluster_oidc_issuer_url
 }
 
-resource "aws_iam_openid_connect_provider" "oidc_provider" {
-  client_id_list  = ["sts.amazonaws.com"]
-  thumbprint_list = [data.tls_certificate.cluster_cert.certificates[0].sha1_fingerprint]
-  url             = module.eks.cluster_oidc_issuer_url
-}
-
 resource "aws_iam_role" "ebs_csi_driver_role" {
   name = "EKS_EBS_CSI_Driver_Role"
 
@@ -130,7 +124,7 @@ resource "aws_iam_role" "ebs_csi_driver_role" {
       {
         Effect = "Allow",
         Principal = {
-          Federated = aws_iam_openid_connect_provider.oidc_provider.arn
+          Federated = module.eks.oidc_provider_arn
         },
         Action = "sts:AssumeRoleWithWebIdentity",
         Condition = {
