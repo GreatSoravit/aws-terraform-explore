@@ -28,6 +28,29 @@ module "vpc" {
     "kubernetes.io/cluster/main-eks-cluster" = "shared"
     "kubernetes.io/role/internal-elb"        = "1"
   }
+
+  resource "aws_security_group" "additional" {
+  name_prefix = "${local.name}-additional"
+  vpc_id      = module.vpc.vpc_id
+
+  ingress {
+    from_port = 22
+    to_port   = 22
+    protocol  = "tcp"
+    cidr_blocks = [
+      "10.0.0.0/8",
+      "172.16.0.0/12",
+      "192.168.0.0/16",
+    ]
+  }
+
+  tags = merge(local.tags, { Name = "${local.name}-additional" })
+}
+
+data "aws_iam_policy" "additional" {
+  arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
+}
+
 }
 #--------------------------------------------------------------------------------
 # Create a KMS key for EKS secrets encryption
@@ -50,116 +73,186 @@ module "eks" {
 
   cluster_name    = "${var.environment.name}-eks-cluster"
   cluster_version = "1.29"
-
-  vpc_id     = module.vpc.vpc_id
-  subnet_ids = module.vpc.private_subnets
-  eks_managed_node_groups = {}
+  cluster_endpoint_public_access = true
+  cluster_addons = {
+    coredns = {
+      most_recent = true
+    }
+    kube-proxy = {
+      most_recent = true
+    }
+    vpc-cni = {
+      most_recent = true
+    }
+    aws-ebs-csi-driver = {
+      most_recent = true
+    }
+  }
 
   cluster_encryption_config = {
     provider_key_arn = aws_kms_key.eks_secrets.arn
     resources        = ["secrets"]
   }
-}
 
-resource "aws_launch_template" "eks_nodes" {
-  name_prefix = "eks-nodes-"
-  
-  # The instance type is now defined here.
-  instance_type = var.instance_type
+  iam_role_additional_policies = {
+    additional = data.aws_iam_policy.additional.arn
+  }
 
-  # Attach the additional security group
-  vpc_security_group_ids = [
-    module.eks.cluster_primary_security_group_id,
-    aws_security_group.ssh_access_sg.id]
+  vpc_id     = module.vpc.vpc_id
+  subnet_ids = module.vpc.private_subnets
+  control_plane_subnet_ids = module.vpc.intra_subnets
 
-  # Define the custom block device (EBS volume) settings.
-  block_device_mappings {
-    device_name = "/dev/xvda" # The root device for Amazon Linux
-    ebs {
-      volume_size = 8
-      volume_type = "gp3"
-      delete_on_termination = true
+  # Extend cluster security group rules
+  cluster_security_group_additional_rules = {
+    ingress_nodes_ephemeral_ports_tcp = {
+      description                = "Nodes on ephemeral ports"
+      protocol                   = "tcp"
+      from_port                  = 1025
+      to_port                    = 65535
+      type                       = "ingress"
+      source_node_security_group = true
+    }
+    # Test: https://github.com/terraform-aws-modules/terraform-aws-eks/pull/2319
+    ingress_source_security_group_id = {
+      description              = "Ingress from another computed security group"
+      protocol                 = "tcp"
+      from_port                = 22
+      to_port                  = 22
+      type                     = "ingress"
+      source_security_group_id = aws_security_group.additional.id
     }
   }
-}
-#--------------------------------------------------------------------------------
-# EKS nodes with IAM role
-data "aws_iam_role" "eks_nodes" {
-  name = "eks-node-group-role"
-}
-#--------------------------------------------------------------------------------
-# This section defines 2-node EC2 instance group.
-resource "aws_eks_node_group" "general_purpose" {
-  cluster_name    = module.eks.cluster_name
-  node_group_name = "general-purpose"
-
-  node_role_arn   = data.aws_iam_role.eks_nodes.arn
-  subnet_ids      = module.vpc.private_subnets
-  
-  launch_template {
-    id      = aws_launch_template.eks_nodes.id
-    version = aws_launch_template.eks_nodes.latest_version
+ # Extend node-to-node security group rules
+  node_security_group_additional_rules = {
+    ingress_self_all = {
+      description = "Node to node all ports/protocols"
+      protocol    = "-1"
+      from_port   = 0
+      to_port     = 0
+      type        = "ingress"
+      self        = true
+    }
+    # Test: https://github.com/terraform-aws-modules/terraform-aws-eks/pull/2319
+    ingress_source_security_group_id = {
+      description              = "Ingress from another computed security group"
+      protocol                 = "tcp"
+      from_port                = 22
+      to_port                  = 22
+      type                     = "ingress"
+      source_security_group_id = aws_security_group.additional.id
+    }
   }
 
-  scaling_config {
-    desired_size = var.desired_size
-    max_size     = var.max_size
-    min_size     = var.min_size
+  # EKS Managed Node Group(s)
+  eks_managed_node_group_defaults = {
+    ami_type       = "AL2_x86_64"
+    instance_types = [var.instance_type]
+
+    attach_cluster_primary_security_group = true
+    vpc_security_group_ids                = [aws_security_group.additional.id]
+    iam_role_additional_policies = {
+      additional = data.aws_iam_policy.additional.arn
+    }
   }
 
-  # This ensures the control plane is ready before creating nodes.
-  depends_on = [module.eks]
-}
-#--------------------------------------------------------------------------------
+  eks_managed_node_groups = {
+    default = {
+      min_size     = var.min_size
+      max_size     = var.max_size
+      desired_size = var.desired_size
 
-resource "aws_iam_role" "ebs_csi_driver_role" {
-  name = "EKS_EBS_CSI_Driver_Role"
+      instance_types = [var.instance_type]
+      capacity_type  = "ON_DEMAND"
 
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Effect = "Allow",
-        Principal = {
-          Federated = module.eks.oidc_provider_arn
-        },
-        Action = "sts:AssumeRoleWithWebIdentity",
-        Condition = {
-          StringEquals = {
-            # This links the role to the specific Kubernetes Service Account
-            "${replace(module.eks.cluster_oidc_issuer_url, "https://", "")}:sub" = "system:serviceaccount:kube-system:ebs-csi-controller-sa"
+      # Needed by the aws-ebs-csi-driver
+      #iam_role_additional_policies = {
+        #AmazonEBSCSIDriverPolicy = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
+      #}
+    }
+
+      taints = {
+        dedicated = {
+          key    = "dedicated"
+          value  = "gpuGroup"
+          effect = "NO_SCHEDULE"
+        }
+      }
+
+      block_device_mappings = {
+        xvda = {
+          device_name = "/dev/xvda"
+          ebs = {
+            volume_size           = 8
+            volume_type           = "gp3"
+            iops                  = 3000
+            throughput            = 150
+            delete_on_termination = true
           }
         }
       }
-    ]
-  })
+
+      update_config = {
+        max_unavailable_percentage = 33 # or set `max_unavailable`
+      }
+
+      tags = {
+        ExtraTag = "example"
+      }
+  }
 }
 
-# Use a data source to find the policy created in the console
-data "aws_iam_policy" "ebs_csi_driver_policy" {
-  arn = "arn:aws:iam::656697807925:policy/EKS_EBS_CSI_Driver_Policy"
-}
 
-# The attachment now uses the data source
-resource "aws_iam_role_policy_attachment" "ebs_csi_driver_attach" {
-  policy_arn = data.aws_iam_policy.ebs_csi_driver_policy.arn
-  role       = aws_iam_role.ebs_csi_driver_role.name
-}
+#resource "aws_launch_template" "eks_nodes" {
+#  name_prefix = "eks-nodes-"
+  
+  # The instance type is now defined here.
+#  instance_type = var.instance_type
 
-# Create the add-on, making it depend on the node group.
-resource "aws_eks_addon" "ebs_csi_driver" {
-  cluster_name = module.eks.cluster_name
-  addon_name   = "aws-ebs-csi-driver"
+  # Attach the additional security group
+#  vpc_security_group_ids = [
+#    module.eks.cluster_primary_security_group_id,
+#    aws_security_group.ssh_access_sg.id]
 
-  # link the addon to the new IAM role
-  service_account_role_arn = aws_iam_role.ebs_csi_driver_role.arn
+  # Define the custom block device (EBS volume) settings.
+#  block_device_mappings {
+#    device_name = "/dev/xvda" # The root device for Amazon Linux
+#    ebs {
+#      volume_size = 8
+#      volume_type = "gp3"
+#      delete_on_termination = true
+#    }
+#  }
+#}
+#--------------------------------------------------------------------------------
+# EKS nodes with IAM role
+#data "aws_iam_role" "eks_nodes" {
+#  name = "eks-node-group-role"
+#}
+#--------------------------------------------------------------------------------
+# This section defines 2-node EC2 instance group.
+#resource "aws_eks_node_group" "general_purpose" {
+#  cluster_name    = module.eks.cluster_name
+#  node_group_name = "general-purpose"
 
-  # This ensures nodes are ready before installing the add-on.
-  depends_on = [
-    aws_iam_role_policy_attachment.ebs_csi_driver_attach,
-    aws_eks_node_group.general_purpose
-    ]
-}
+#  node_role_arn   = data.aws_iam_role.eks_nodes.arn
+#  subnet_ids      = module.vpc.private_subnets
+  
+#  launch_template {
+#    id      = aws_launch_template.eks_nodes.id
+#    version = aws_launch_template.eks_nodes.latest_version
+#  }
+
+#  scaling_config {
+#    desired_size = var.desired_size
+#    max_size     = var.max_size
+#    min_size     = var.min_size
+#  }
+
+  # This ensures the control plane is ready before creating nodes.
+#  depends_on = [module.eks]
+#}
+#--------------------------------------------------------------------------------
+
 #--------------------------------------------------------------------------------
 # Data source to get your current IP address
 data "http" "my_ip" {
