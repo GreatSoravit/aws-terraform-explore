@@ -60,7 +60,7 @@ module "eks" {
     resources        = ["secrets"]
   }
 
-  map_users = [
+  aws_auth_users = [
     {
       userarn  = "arn:aws:iam::656697807925:user/user-aws-terraform-explore"
       username = "user-aws-terraform-explore"
