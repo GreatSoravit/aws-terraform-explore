@@ -130,7 +130,7 @@ resource "aws_iam_role" "ebs_csi_driver_role" {
         Condition = {
           StringEquals = {
             # This links the role to the specific Kubernetes Service Account
-            "${replace(aws_iam_openid_connect_provider.oidc_provider.url, "https://", "")}:sub" = "system:serviceaccount:kube-system:ebs-csi-controller-sa"
+            "${replace(module.eks.cluster_oidc_issuer_url, "https://", "")}:sub" = "system:serviceaccount:kube-system:ebs-csi-controller-sa"
           }
         }
       }
