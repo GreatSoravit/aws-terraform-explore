@@ -170,14 +170,6 @@ module "eks" {
         #AmazonEBSCSIDriverPolicy = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
       #}
 
-      taints = {
-        dedicated = {
-          key    = "dedicated"
-          value  = "gpuGroup"
-          effect = "NO_SCHEDULE"
-        }
-      }
-
       block_device_mappings = {
         xvda = {
           device_name = "/dev/xvda"
