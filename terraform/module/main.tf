@@ -169,7 +169,6 @@ module "eks" {
       #iam_role_additional_policies = {
         #AmazonEBSCSIDriverPolicy = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
       #}
-    }
 
       taints = {
         dedicated = {
@@ -195,10 +194,7 @@ module "eks" {
       update_config = {
         max_unavailable_percentage = 33 # or set `max_unavailable`
       }
-
-      tags = {
-        ExtraTag = "example"
-      }
+    }  
   }
 }
 
