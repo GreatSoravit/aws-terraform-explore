@@ -60,12 +60,6 @@ module "eks" {
     resources        = ["secrets"]
   }
 
-  aws_auth_users = [
-    {
-      userarn  = "arn:aws:iam::656697807925:user/user-aws-terraform-explore"
-      username = "user-aws-terraform-explore"
-      groups   = ["system:masters"]
-    }
   ]
 }
 
