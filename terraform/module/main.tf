@@ -108,12 +108,7 @@ resource "aws_eks_node_group" "general_purpose" {
   }
 
   # This ensures the control plane is ready before creating nodes.
-  depends_on = [
-    module.eks,
-    aws_iam_role_policy_attachment.amazon_eks_worker_node_policy,
-    aws_iam_role_policy_attachment.amazon_ec2_container_registry_read_only,
-    aws_iam_role_policy_attachment.amazon_eks_cni_policy,
-]
+  depends_on = [module.eks]
 }
 #--------------------------------------------------------------------------------
 data "aws_eks_cluster" "cluster" {
