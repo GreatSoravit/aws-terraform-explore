@@ -29,7 +29,7 @@ module "vpc" {
     "kubernetes.io/role/internal-elb"        = "1"
   }
 }
---------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------
 # Create a KMS key for EKS secrets encryption
 resource "aws_kms_key" "eks_secrets" {
   description             = "KMS key for EKS cluster secrets encryption"
@@ -82,12 +82,12 @@ resource "aws_launch_template" "eks_nodes" {
     }
   }
 }
---------------------------------------------------------------------------------
-# Create the IAM role that EKS nodes will use.
+#--------------------------------------------------------------------------------
+# EKS nodes with IAM role
 data "aws_iam_role" "eks_nodes" {
   name = "eks-node-group-role"
 }
---------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------
 # This section defines 2-node EC2 instance group.
 resource "aws_eks_node_group" "general_purpose" {
   cluster_name    = module.eks.cluster_name
@@ -115,7 +115,7 @@ resource "aws_eks_node_group" "general_purpose" {
     aws_iam_role_policy_attachment.amazon_eks_cni_policy,
 ]
 }
---------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------
 data "aws_eks_cluster" "cluster" {
   name = module.eks.cluster_name
 }
@@ -182,7 +182,7 @@ resource "aws_eks_addon" "ebs_csi_driver" {
     aws_eks_node_group.general_purpose
     ]
 }
---------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------
 # Data source to get your current IP address
 data "http" "my_ip" {
   url = "http://ipv4.icanhazip.com"
