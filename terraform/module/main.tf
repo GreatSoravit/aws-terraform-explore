@@ -28,6 +28,7 @@ module "vpc" {
     "kubernetes.io/cluster/main-eks-cluster" = "shared"
     "kubernetes.io/role/internal-elb"        = "1"
   }
+}
 
 resource "aws_security_group" "additional" {
   name_prefix = "${local.name}-additional"
