@@ -59,6 +59,14 @@ module "eks" {
     provider_key_arn = aws_kms_key.eks_secrets.arn
     resources        = ["secrets"]
   }
+
+  map_users = [
+    {
+      userarn  = "arn:aws:iam::656697807925:user/user-aws-terraform-explore"
+      username = "user-aws-terraform-explore"
+      groups   = ["system:masters"]
+    }
+  ]
 }
 
 resource "aws_launch_template" "eks_nodes" {
