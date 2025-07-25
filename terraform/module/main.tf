@@ -75,7 +75,7 @@ resource "aws_launch_template" "eks_nodes" {
   name_prefix   = "${var.environment.name}-eks-nodes"
   image_id      = data.aws_ami.eks_worker.id
   instance_type = var.instance_type
-  key_name      = aws_key_pair.eks_node_key.key_name
+  # key_name      = aws_key_pair.eks_node_key.key_name
 
   vpc_security_group_ids = [
     module.eks.cluster_primary_security_group_id #,
@@ -234,6 +234,8 @@ module "eks" {
       min_size     = var.min_size
       max_size     = var.max_size
       desired_size = var.desired_size
+
+      key_name     = aws_key_pair.eks_node_key.key_name
 
       launch_template_id      = aws_launch_template.eks_nodes.id
       launch_template_version = aws_launch_template.eks_nodes.latest_version
