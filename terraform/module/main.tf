@@ -13,6 +13,7 @@ module "vpc" {
   azs             = ["${data.aws_region.current.name}a", "${data.aws_region.current.name}b"]
   private_subnets = ["10.0.1.0/24", "10.0.2.0/24"]
   public_subnets  = ["10.0.101.0/24", "10.0.102.0/24"]
+  map_public_ip_on_launch = true
 
   # A NAT Gateway is required for nodes in private subnets to pull images from the internet.
   enable_nat_gateway = true
@@ -59,6 +60,33 @@ resource "aws_key_pair" "eks_node_key" {
 data "aws_iam_user" "terraform_user" {
   user_name = "user-aws-terraform-explore"
 }
+
+# Data source to get your current IP address
+data "http" "my_ip" {
+  url = "http://ipv4.icanhazip.com"
+}
+# Creates a new security group
+resource "aws_security_group" "ssh_access_sg" {
+  name        = "ssh-from-my-ip"
+  description = "Allow SSH inbound traffic from my IP"
+  vpc_id      = module.vpc.vpc_id # Associates it with your VPC
+
+  # Rule allowing incoming SSH traffic from your IP
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["${chomp(data.http.my_ip.response_body)}/32"]
+  }
+
+  # Allows all outbound traffic (common practice)
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
 #--------------------------------------------------------------------------------
 data "aws_ami" "eks_worker" {
   most_recent = true
@@ -70,10 +98,15 @@ data "aws_ami" "eks_worker" {
 }
 
 resource "aws_launch_template" "eks_nodes" {
-  name_prefix   = "eks-nodes-"
+  name_prefix   = "${var.environment.name}-eks-nodes"
   image_id      = data.aws_ami.eks_worker.id
   instance_type = var.instance_type
   key_name      = aws_key_pair.eks_node_key.key_name
+
+  vpc_security_group_ids = [
+    module.eks.cluster_primary_security_group_id,
+    aws_security_group.ssh_access_sg.id           # custom rule for SSH
+  ]
 
   block_device_mappings {
       device_name = "/dev/xvda"
@@ -223,6 +256,7 @@ module "eks" {
 
   eks_managed_node_groups = {
     default = {
+      subnet_ids = module.vpc.public_subnets
       min_size     = var.min_size
       max_size     = var.max_size
       desired_size = var.desired_size
@@ -246,6 +280,7 @@ module "eks" {
     }
   }
 }
+
 #--------------------------------------------------------------------------------
 # EKS nodes with IAM role
 #data "aws_iam_role" "eks_nodes" {
@@ -275,34 +310,6 @@ module "eks" {
 #  depends_on = [module.eks]
 #}
 #--------------------------------------------------------------------------------
-# Data source to get your current IP address
-data "http" "my_ip" {
-  url = "http://ipv4.icanhazip.com"
-}
-
-# Creates a new security group
-resource "aws_security_group" "ssh_access_sg" {
-  name        = "ssh-from-my-ip"
-  description = "Allow SSH inbound traffic from my IP"
-  vpc_id      = module.vpc.vpc_id # Associates it with your VPC
-
-  # Rule allowing incoming SSH traffic from your IP
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["${chomp(data.http.my_ip.response_body)}/32"]
-  }
-
-  # Allows all outbound traffic (common practice)
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
 # Creates a standalone General Purpose SSD (gp3) EBS volume.
 # This volume can be dynamically provisioned to pods in EKS using the EBS CSI Driver.
 # resource "aws_ebs_volume" "database_volume" {
