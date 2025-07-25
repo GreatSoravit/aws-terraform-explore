@@ -21,12 +21,12 @@ module "vpc" {
 
   # Tags required by Kubernetes for service discovery (e.g., for Load Balancers).
   public_subnet_tags = {
-    "kubernetes.io/cluster/main-eks-cluster" = "shared"
+    "kubernetes.io/cluster/${var.environment.name}-eks-cluster" = "shared"
     "kubernetes.io/role/elb"                 = "1"
   }
 
   private_subnet_tags = {
-    "kubernetes.io/cluster/main-eks-cluster" = "shared"
+    "kubernetes.io/cluster/${var.environment.name}-eks-cluster" = "shared"
     "kubernetes.io/role/internal-elb"        = "1"
   }
 }
