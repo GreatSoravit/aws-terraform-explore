@@ -56,6 +56,9 @@ resource "aws_key_pair" "eks_node_key" {
   key_name   = "eks-node-key"
   public_key = file("eks-node-key.pub")
 }
+data "aws_iam_user" "terraform_user" {
+  user_name = "user-aws-terraform-explore"
+}
 #--------------------------------------------------------------------------------
 # Create a KMS key for EKS secrets encryption
 resource "aws_kms_key" "eks_secrets" {
