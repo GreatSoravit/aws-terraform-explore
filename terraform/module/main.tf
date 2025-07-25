@@ -77,7 +77,7 @@ resource "aws_launch_template" "eks_nodes" {
 
   block_device_mappings {
       device_name = "/dev/xvda"
-      ebs = {
+      ebs {
         volume_size           = 8
         volume_type           = "gp3"
         iops                  = 3000
@@ -89,7 +89,7 @@ resource "aws_launch_template" "eks_nodes" {
   tag_specifications {
     resource_type = "instance"
     tags = {
-      Name = "eks-node"
+      Name = "aws-terraform-explore"
     }
   }
 }
