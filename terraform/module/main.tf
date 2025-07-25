@@ -66,7 +66,7 @@ data "aws_ami" "eks_worker" {
     name   = "name"
     values = ["amazon-eks-node-${var.cluster_version}-v*"]
   }
-  owners = ["602401143452"] 
+  owners = ["121268973566"] 
 }
 
 resource "aws_launch_template" "eks_nodes" {
