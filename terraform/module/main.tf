@@ -75,10 +75,8 @@ resource "aws_launch_template" "eks_nodes" {
   instance_type = var.instance_type
   key_name      = aws_key_pair.eks_node_key.key_name
 
-  block_device_mappings = {
-
+  block_device_mappings {
       device_name = "/dev/xvda"
-
       ebs = {
         volume_size           = 8
         volume_type           = "gp3"
