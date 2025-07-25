@@ -54,7 +54,7 @@ data "aws_iam_policy" "additional" {
 #--------------------------------------------------------------------------------
 resource "aws_key_pair" "eks_node_key" {
   key_name   = "eks-node-key"
-  public_key = file("eks-node-key.pub")
+  public_key = file("${path.module}/eks-node-key.pub")
 }
 data "aws_iam_user" "terraform_user" {
   user_name = "user-aws-terraform-explore"
