@@ -51,8 +51,11 @@ resource "aws_security_group" "additional" {
 data "aws_iam_policy" "additional" {
   arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
 }
-
-
+#--------------------------------------------------------------------------------
+resource "aws_key_pair" "eks_node_key" {
+  key_name   = "eks-node-key"
+  public_key = file("eks-node-key.pub")
+}
 #--------------------------------------------------------------------------------
 # Create a KMS key for EKS secrets encryption
 resource "aws_kms_key" "eks_secrets" {
@@ -75,6 +78,25 @@ module "eks" {
   cluster_name    = "${var.environment.name}-eks-cluster"
   cluster_version = "1.29"
   cluster_endpoint_public_access = true
+
+  access_entries = {
+    # A descriptive name for the access entry
+    terraform_user_admin = {
+      principal_arn = data.aws_iam_user.terraform_user.arn
+      
+      # A list of policies to associate with user
+      policy_associations = {
+        # A descriptive name for the policy association
+        admin = {
+          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+          access_scope = {
+            type = "cluster"
+          }
+        }
+      }
+    }
+  }
+
   cluster_addons = {
     coredns = {
       most_recent = true
@@ -162,6 +184,8 @@ module "eks" {
       max_size     = var.max_size
       desired_size = var.desired_size
 
+      key_name = aws_key_pair.eks_node_key.key_name
+
       instance_types = [var.instance_type]
       capacity_type  = "ON_DEMAND"
 
@@ -189,8 +213,7 @@ module "eks" {
     }  
   }
 }
-
-
+#--------------------------------------------------------------------------------
 #resource "aws_launch_template" "eks_nodes" {
 #  name_prefix = "eks-nodes-"
   
@@ -240,8 +263,6 @@ module "eks" {
   # This ensures the control plane is ready before creating nodes.
 #  depends_on = [module.eks]
 #}
-#--------------------------------------------------------------------------------
-
 #--------------------------------------------------------------------------------
 # Data source to get your current IP address
 data "http" "my_ip" {
