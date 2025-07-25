@@ -235,13 +235,11 @@ module "eks" {
       max_size     = var.max_size
       desired_size = var.desired_size
 
-      instance_types = [var.instance_type]
-      capacity_type  = "ON_DEMAND"
+      launch_template_id      = aws_launch_template.eks_nodes.id
+      launch_template_version = aws_launch_template.eks_nodes.latest_version
 
-      launch_template = {
-        id      = aws_launch_template.eks_nodes.id
-        version = "$Latest"
-      }
+      # instance_types = [var.instance_type]
+      # capacity_type  = "ON_DEMAND"
 
       # Needed by the aws-ebs-csi-driver
       #iam_role_additional_policies = {
