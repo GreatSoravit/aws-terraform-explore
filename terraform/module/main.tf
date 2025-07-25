@@ -76,16 +76,16 @@ resource "aws_launch_template" "eks_nodes" {
   key_name      = aws_key_pair.eks_node_key.key_name
 
   block_device_mappings = {
-    xvda = {
+
       device_name = "/dev/xvda"
+
       ebs = {
         volume_size           = 8
         volume_type           = "gp3"
         iops                  = 3000
         throughput            = 150
-            delete_on_termination = true
+        delete_on_termination = true
       }
-    }
   }
 
   tag_specifications {
