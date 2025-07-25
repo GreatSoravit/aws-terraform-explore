@@ -43,6 +43,7 @@ resource "aws_security_group" "additional" {
       "10.0.0.0/8",
       "172.16.0.0/12",
       "192.168.0.0/16",
+      "49.228.99.81/32",
     ]
   }
 
@@ -59,33 +60,6 @@ resource "aws_key_pair" "eks_node_key" {
 }
 data "aws_iam_user" "terraform_user" {
   user_name = "user-aws-terraform-explore"
-}
-
-# Data source to get your current IP address
-data "http" "my_ip" {
-  url = "http://ipv4.icanhazip.com"
-}
-# Creates a new security group
-resource "aws_security_group" "ssh_access_sg" {
-  name        = "ssh-from-my-ip"
-  description = "Allow SSH inbound traffic from my IP"
-  vpc_id      = module.vpc.vpc_id # Associates it with your VPC
-
-  # Rule allowing incoming SSH traffic from your IP
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["${chomp(data.http.my_ip.response_body)}/32"]
-  }
-
-  # Allows all outbound traffic (common practice)
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
 }
 #--------------------------------------------------------------------------------
 data "aws_ami" "eks_worker" {
@@ -104,8 +78,8 @@ resource "aws_launch_template" "eks_nodes" {
   key_name      = aws_key_pair.eks_node_key.key_name
 
   vpc_security_group_ids = [
-    module.eks.cluster_primary_security_group_id,
-    aws_security_group.ssh_access_sg.id           # custom rule for SSH
+    module.eks.cluster_primary_security_group_id #,
+    #aws_security_group.ssh_access_sg.id           # custom rule for SSH
   ]
 
   block_device_mappings {
@@ -282,6 +256,32 @@ module "eks" {
 }
 
 #--------------------------------------------------------------------------------
+# Data source to get your current IP address
+data "http" "my_ip" {
+  url = "http://ipv4.icanhazip.com"
+}
+# Creates a new security group
+resource "aws_security_group" "ssh_access_sg" {
+  name        = "ssh-from-my-ip"
+  description = "Allow SSH inbound traffic from my IP"
+  vpc_id      = module.vpc.vpc_id # Associates it with your VPC
+
+  # Rule allowing incoming SSH traffic from your IP
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["${chomp(data.http.my_ip.response_body)}/32"]
+  }
+
+  # Allows all outbound traffic (common practice)
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
 # EKS nodes with IAM role
 #data "aws_iam_role" "eks_nodes" {
 #  name = "eks-node-group-role"
