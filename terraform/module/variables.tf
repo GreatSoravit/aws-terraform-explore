@@ -34,4 +34,5 @@ variable "desired_size" {
 variable "cluster_version" {
   description = "The version of the EKS cluster (e.g., 1.29)"
   type        = string
+  default     = "1.29"
 }
