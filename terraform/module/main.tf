@@ -60,6 +60,48 @@ data "aws_iam_user" "terraform_user" {
   user_name = "user-aws-terraform-explore"
 }
 #--------------------------------------------------------------------------------
+data "aws_ami" "eks_worker" {
+  most_recent = true
+  filter {
+    name   = "name"
+    values = ["amazon-eks-node-${var.cluster_version}-v*"]
+  }
+  owners = ["602401143452"] 
+}
+
+resource "aws_launch_template" "eks_nodes" {
+  name_prefix   = "eks-nodes-"
+  image_id      = data.aws_ami.eks_worker.id
+  instance_type = var.instance_type
+  key_name      = aws_key_pair.eks_node_key.key_name
+
+  block_device_mappings = {
+    xvda = {
+      device_name = "/dev/xvda"
+      ebs = {
+        volume_size           = 8
+        volume_type           = "gp3"
+        iops                  = 3000
+        throughput            = 150
+            delete_on_termination = true
+      }
+    }
+  }
+
+  tag_specifications {
+    resource_type = "instance"
+    tags = {
+      Name = "eks-node"
+    }
+  }
+
+# Attach the additional security group
+#  vpc_security_group_ids = [
+#    module.eks.cluster_primary_security_group_id,
+#    aws_security_group.ssh_access_sg.id]
+
+#}
+#--------------------------------------------------------------------------------
 # Create a KMS key for EKS secrets encryption
 resource "aws_kms_key" "eks_secrets" {
   description             = "KMS key for EKS cluster secrets encryption"
@@ -187,57 +229,25 @@ module "eks" {
       max_size     = var.max_size
       desired_size = var.desired_size
 
-      key_name = aws_key_pair.eks_node_key.key_name
-
       instance_types = [var.instance_type]
       capacity_type  = "ON_DEMAND"
+
+      launch_template = {
+        id      = aws_launch_template.eks_node_lt.id
+        version = "$Latest"
+      }
 
       # Needed by the aws-ebs-csi-driver
       #iam_role_additional_policies = {
         #AmazonEBSCSIDriverPolicy = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
       #}
 
-      block_device_mappings = {
-        xvda = {
-          device_name = "/dev/xvda"
-          ebs = {
-            volume_size           = 8
-            volume_type           = "gp3"
-            iops                  = 3000
-            throughput            = 150
-            delete_on_termination = true
-          }
-        }
-      }
-
       update_config = {
         max_unavailable_percentage = 33 # or set `max_unavailable`
       }
-    }  
+    }
   }
 }
-#--------------------------------------------------------------------------------
-#resource "aws_launch_template" "eks_nodes" {
-#  name_prefix = "eks-nodes-"
-  
-  # The instance type is now defined here.
-#  instance_type = var.instance_type
-
-  # Attach the additional security group
-#  vpc_security_group_ids = [
-#    module.eks.cluster_primary_security_group_id,
-#    aws_security_group.ssh_access_sg.id]
-
-  # Define the custom block device (EBS volume) settings.
-#  block_device_mappings {
-#    device_name = "/dev/xvda" # The root device for Amazon Linux
-#    ebs {
-#      volume_size = 8
-#      volume_type = "gp3"
-#      delete_on_termination = true
-#    }
-#  }
-#}
 #--------------------------------------------------------------------------------
 # EKS nodes with IAM role
 #data "aws_iam_role" "eks_nodes" {
