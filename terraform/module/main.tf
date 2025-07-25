@@ -121,7 +121,7 @@ module "eks" {
   version = "~> 20.0"
 
   cluster_name    = "${var.environment.name}-eks-cluster"
-  cluster_version = "1.29"
+  cluster_version = var.cluster_version
   cluster_endpoint_public_access = true
 
   access_entries = {
@@ -233,7 +233,7 @@ module "eks" {
       capacity_type  = "ON_DEMAND"
 
       launch_template = {
-        id      = aws_launch_template.eks_node_lt.id
+        id      = aws_launch_template.eks_nodes.id
         version = "$Latest"
       }
 
