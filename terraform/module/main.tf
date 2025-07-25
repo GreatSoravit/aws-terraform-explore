@@ -94,7 +94,7 @@ resource "aws_launch_template" "eks_nodes" {
       Name = "eks-node"
     }
   }
-
+}
 # Attach the additional security group
 #  vpc_security_group_ids = [
 #    module.eks.cluster_primary_security_group_id,
