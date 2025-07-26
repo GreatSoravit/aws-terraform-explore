@@ -103,6 +103,7 @@ resource "aws_iam_role" "aws_load_balancer_controller" {
 # Use IAM policy json file to create policy
 resource "aws_iam_policy" "lb_controller_policy" {
   name        = "AWSLoadBalancerControllerIAMPolicy"
+  path        = "/"
   description = "Policy for AWS Load Balancer Controller"
   policy      = file("${path.module}/IAM/aws_load_balancer_controller_iam_policy.json")  # path to downloaded file
 }
@@ -142,9 +143,11 @@ resource "helm_release" "aws_load_balancer_controller" {
 
   # Ensures the EKS cluster is ready before trying to install the chart
   depends_on = [
-    module.eks
+    module.eks,
+    aws_iam_policy.lb_controller_policy
   ]
 }
+
 #--------------------------------------------------------------------------------
 # key pair generate in local machine then upload to aws attach to instance
 resource "aws_key_pair" "eks_node_key" {
