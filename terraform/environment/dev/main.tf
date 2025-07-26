@@ -32,7 +32,7 @@ resource "helm_release" "aws_load_balancer_controller" {
   values = [
     yamlencode({
       clusterName = module.dev.cluster_name
-      region      = module.dev.aws_region_name.name
+      region      = module.dev.aws_region_name
       vpcId       = module.dev.vpc_id
 
       serviceAccount = {
