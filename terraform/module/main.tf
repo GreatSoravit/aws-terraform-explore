@@ -321,8 +321,16 @@ module "eks" {
   }
 }
 
+data "aws_security_group" "node_sg" {
+  filter {
+    name   = "tag:Name"
+    values = ["${var.environment.name}-eks-cluster-node"]
+  }
+  vpc_id = module.vpc.vpc_id
+}
+
 resource "aws_ec2_tag" "eks_node_sg_owned_tag" {
-  resource_id = module.eks.node_security_group_id
+  resource_id = data.aws_security_group.node_sg.id
   key         = "kubernetes.io/cluster/${module.eks.cluster_name}"
   value       = "owned"
 }
