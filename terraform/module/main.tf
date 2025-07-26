@@ -101,12 +101,12 @@ resource "aws_iam_role" "aws_load_balancer_controller" {
 }
 
 # Use IAM policy json file to create policy
-resource "aws_iam_policy" "lb_controller_policy" {
-  name        = "AWSLoadBalancerControllerIAMPolicy"
-  path        = "/"
-  description = "Policy for AWS Load Balancer Controller"
-  policy      = file("${path.module}/IAM/aws_load_balancer_controller_iam_policy.json")  # path to downloaded file
-}
+#resource "aws_iam_policy" "lb_controller_policy" {
+#  name        = "AWSLoadBalancerControllerIAMPolicy"
+#  path        = "/"
+#  description = "Policy for AWS Load Balancer Controller"
+#  policy      = file("${path.module}/IAM/aws_load_balancer_controller_iam_policy.json")  # path to downloaded file
+#}
 
 # Attaches the required AWS-managed policy to the role
 resource "aws_iam_role_policy_attachment" "aws_load_balancer_controller" {
@@ -115,38 +115,6 @@ resource "aws_iam_role_policy_attachment" "aws_load_balancer_controller" {
 }
 
 #--------------------------------------------------------------------------------
-# Installs the AWS Load Balancer Controller using its Helm chart
-resource "helm_release" "aws_load_balancer_controller" {
-  #provider   = helm.eks
-  name       = "aws-load-balancer-controller"
-  repository = "https://aws.github.io/eks-charts"
-  chart      = "aws-load-balancer-controller"
-  namespace  = "kube-system"
-  version    = "1.8.1" # Pinning a version is a good practice
-
-  # Pass values to the Helm chart
-  values = [
-    yamlencode({
-      clusterName = module.eks.cluster_name
-      region      = data.aws_region.current.name
-      vpcId       = module.vpc.vpc_id
-
-      serviceAccount = {
-        create = true
-        name   = "aws-load-balancer-controller"
-        annotations = {
-          "eks.amazonaws.com/role-arn" = aws_iam_role.aws_load_balancer_controller.arn
-        }
-      }
-    })
-  ]
-
-  # Ensures the EKS cluster is ready before trying to install the chart
-  depends_on = [
-    module.eks,
-    aws_iam_policy.lb_controller_policy
-  ]
-}
 
 #--------------------------------------------------------------------------------
 # key pair generate in local machine then upload to aws attach to instance
