@@ -147,7 +147,7 @@ data "aws_ami" "eks_worker" {
     name   = "name"
     values = ["amazon-eks-node-${var.cluster_version}-v*"]
   }
-  owners = ["121268973566"] 
+  owners = ["602401143452"] 
 }
 
 # launch template for eks_node
