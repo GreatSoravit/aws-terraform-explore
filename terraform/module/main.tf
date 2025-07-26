@@ -117,7 +117,7 @@ resource "aws_iam_role_policy_attachment" "aws_load_balancer_controller" {
 #--------------------------------------------------------------------------------
 # Installs the AWS Load Balancer Controller using its Helm chart
 resource "helm_release" "aws_load_balancer_controller" {
-  provider   = helm.eks
+  #provider   = helm.eks
   name       = "aws-load-balancer-controller"
   repository = "https://aws.github.io/eks-charts"
   chart      = "aws-load-balancer-controller"
@@ -128,7 +128,7 @@ resource "helm_release" "aws_load_balancer_controller" {
   values = [
     yamlencode({
       clusterName = module.eks.cluster_name
-      region = data.aws_region.current.name
+      region      = data.aws_region.current.name
       vpcId       = module.vpc.vpc_id
 
       serviceAccount = {
