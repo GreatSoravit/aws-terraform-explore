@@ -53,17 +53,25 @@ resource "aws_security_group" "additional" {
   tags = { Name = "aws-terraform-explore" }
 }
 
-# adds a specific ingress rule to the EKS node security group
-resource "aws_security_group_rule" "allow_alb_to_nodes" {
+# Allows HTTP traffic from the ALB to the nodes
+resource "aws_security_group_rule" "allow_alb_http_to_nodes" {
+  description              = "Allow HTTP from ALB to EKS nodes"
   type                     = "ingress"
-  from_port                = 0 # Allow all ports for simplicity, or lock down to 80/443
-  to_port                  = 0
-  protocol                 = "-1" # Allow all protocols
-  
-  # The source is the cluster's main security group, which the ALB uses
+  from_port                = 80
+  to_port                  = 80
+  protocol                 = "tcp"
   source_security_group_id = module.eks.cluster_primary_security_group_id
-  
-  # The destination is the node's security group
+  security_group_id        = module.eks.node_security_group_id
+}
+
+# Allows HTTPS traffic from the ALB to the nodes
+resource "aws_security_group_rule" "allow_alb_https_to_nodes" {
+  description              = "Allow HTTPS from ALB to EKS nodes"
+  type                     = "ingress"
+  from_port                = 443
+  to_port                  = 443
+  protocol                 = "tcp"
+  source_security_group_id = module.eks.cluster_primary_security_group_id
   security_group_id        = module.eks.node_security_group_id
 }
 #--------------------------------------------------------------------------------
