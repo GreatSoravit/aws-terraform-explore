@@ -104,7 +104,7 @@ resource "aws_iam_role" "aws_load_balancer_controller" {
 resource "aws_iam_policy" "lb_controller_policy" {
   name        = "AWSLoadBalancerControllerIAMPolicy"
   description = "Policy for AWS Load Balancer Controller"
-  policy = file("${path.module}/IAM/aws_load_balancer_controller_iam_policy.json")  # path to downloaded file
+  policy      = file("${path.module}/IAM/aws_load_balancer_controller_iam_policy.json")  # path to downloaded file
 }
 
 # Attaches the required AWS-managed policy to the role
