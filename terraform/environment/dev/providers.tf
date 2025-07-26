@@ -4,30 +4,43 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
+    helm = {
+      source  = "hashicorp/helm"
+      version = "~> 2.11"  # or latest
+    }
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = "~> 2.20"  # or latest
+    }
   }
 }
 
 provider "aws" {
-  region = "ap-southeast-7" # Thailand
+  region = "ap-southeast-7" 
 }
 
-# This data source gets a temporary authentication token for the EKS cluster.
-data "aws_eks_cluster_auth" "this" {
-  name = module.dev.module.eks.cluster_id
+data "aws_eks_cluster" "eks" {
+  name = module.eks.cluster_name
+  depends_on = [module.eks]
 }
 
-# Configure the Kubernetes provider to connect to the EKS cluster.
+data "aws_eks_cluster_auth" "eks" {
+  name = module.eks.cluster_name
+  depends_on = [module.eks]
+}
+
 provider "kubernetes" {
-  host                   = module.dev.module.eks.cluster_endpoint
-  cluster_ca_certificate = base64decode(module.dev.module.eks.cluster_certificate_authority_data)
-  token                  = data.aws_eks_cluster_auth.this.token
+  alias                  = "eks"
+  host                   = data.aws_eks_cluster.eks.endpoint
+  cluster_ca_certificate = base64decode(data.aws_eks_cluster.eks.certificate_authority[0].data)
+  token                  = data.aws_eks_cluster_auth.eks.token
 }
 
-# Configure the Helm provider to connect to the EKS cluster.
 provider "helm" {
-  kubernetes = {
-    host                   = module.dev.module.eks.cluster_endpoint
-    cluster_ca_certificate = base64decode(module.dev.module.eks.cluster_certificate_authority_data)
-    token                  = data.aws_eks_cluster_auth.this.token
+  alias                    = "eks"
+  kubernetes {
+    host                   = data.aws_eks_cluster.eks.endpoint
+    cluster_ca_certificate = base64decode(data.aws_eks_cluster.eks.certificate_authority[0].data)
+    token                  = data.aws_eks_cluster_auth.eks.token
   }
 }
