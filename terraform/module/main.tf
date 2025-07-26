@@ -115,27 +115,22 @@ resource "helm_release" "aws_load_balancer_controller" {
   version    = "1.8.1" # Pinning a version is a good practice
 
   # Pass values to the Helm chart
-  set {
-    name  = "clusterName"
-    value = module.eks.cluster_name
-  }
-  set {
-    name  = "serviceAccount.create"
-    value = "true"
-  }
-  set {
-    name  = "serviceAccount.name"
-    value = "aws-load-balancer-controller"
-  }
-  # This links the Kubernetes Service Account to the IAM Role you created
-  set {
-    name  = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
-    value = aws_iam_role.aws_load_balancer_controller.arn
-  }
+  values = [
+    yamlencode({
+      clusterName = module.eks.cluster_name
+      serviceAccount = {
+        create = true
+        name   = "aws-load-balancer-controller"
+        annotations = {
+          "eks.amazonaws.com/role-arn" = aws_iam_role.aws_load_balancer_controller.arn
+        }
+      }
+    })
+  ]
 
   # Ensures the EKS cluster is ready before trying to install the chart
   depends_on = [
-    module.eks.eks_managed_node_group["default"]
+    module.eks
   ]
 }
 #--------------------------------------------------------------------------------
