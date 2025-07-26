@@ -321,6 +321,11 @@ module "eks" {
   }
 }
 
+resource "aws_ec2_tag" "eks_node_sg_owned_tag" {
+  resource_id = module.eks.node_security_group_id
+  key         = "kubernetes.io/cluster/${module.eks.cluster_name}"
+  value       = "owned"
+}
 #--------------------------------------------------------------------------------
 # Data source to get your current IP address
 data "http" "my_ip" {
