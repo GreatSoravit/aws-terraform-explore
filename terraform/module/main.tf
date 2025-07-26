@@ -140,15 +140,20 @@ resource "aws_key_pair" "eks_node_key" {
   public_key = file("${path.module}/eks-node-key.pub")
 }
 
-# finds the latest recommended EKS AMI ID.
-data "aws_ssm_parameter" "eks_ami" {
-  name = "/aws/service/eks/optimized-ami/${var.cluster_version}/amazon-linux-2/recommended/image_id"
+# seach the lastest AMI based on filter 
+data "aws_ami" "eks_worker" {
+  most_recent = true
+  filter {
+    name   = "name"
+    values = ["amazon-eks-node-${var.cluster_version}-v*"]
+  }
+  owners = ["121268973566"] 
 }
 
 # launch template for eks_node
 resource "aws_launch_template" "eks_nodes" {
   name_prefix   = "${var.environment.name}-eks-nodes"
-  image_id      = data.aws_ssm_parameter.eks_ami.value
+  image_id      = data.aws_ami.eks_worker.id
   instance_type = var.instance_type
 
   vpc_security_group_ids = [
