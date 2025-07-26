@@ -38,8 +38,8 @@ resource "helm_release" "aws_load_balancer_controller" {
       serviceAccount = {
         create = true
         name   = "aws-load-balancer-controller"
-        annotations = {
-          "eks.amazonaws.com/role-arn" = module,dev.aws_load_balancer_controller_iam_role_arn
+        annotations {
+          "eks.amazonaws.com/role-arn" = module.dev.aws_load_balancer_controller_iam_role_arn
         }
       }
     })
