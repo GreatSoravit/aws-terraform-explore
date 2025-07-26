@@ -1,6 +1,7 @@
 # Region
 data "aws_region" "current" {}
 
+#-----------------------------------VPC-----------------------------------------
 # This module creates a best-practice VPC, subnets, route tables,
 # an internet gateway, and a NAT gateway for private subnets.
 module "vpc" {
@@ -13,6 +14,8 @@ module "vpc" {
   azs             = ["${data.aws_region.current.name}a", "${data.aws_region.current.name}b"]
   private_subnets = ["10.0.1.0/24", "10.0.2.0/24"]
   public_subnets  = ["10.0.101.0/24", "10.0.102.0/24"]
+
+  # set public IP to connect with Internet
   map_public_ip_on_launch = true
 
   # A NAT Gateway is required for nodes in private subnets to pull images from the internet.
@@ -31,6 +34,7 @@ module "vpc" {
   }
 }
 
+# additional security group to access following IP
 resource "aws_security_group" "additional" {
   name_prefix = "aws-terraform-explore-additional"
   vpc_id      = module.vpc.vpc_id
@@ -46,22 +50,102 @@ resource "aws_security_group" "additional" {
       "49.228.99.81/32",
     ]
   }
-
   tags = { Name = "aws-terraform-explore" }
+}
+
+# adds a specific ingress rule to the EKS node security group
+resource "aws_security_group_rule" "allow_alb_to_nodes" {
+  type                     = "ingress"
+  from_port                = 0 # Allow all ports for simplicity, or lock down to 80/443
+  to_port                  = 0
+  protocol                 = "-1" # Allow all protocols
+  
+  # The source is the cluster's main security group, which the ALB uses
+  source_security_group_id = module.eks.cluster_primary_security_group_id
+  
+  # The destination is the node's security group
+  security_group_id        = module.eks.node_security_group_id
+}
+#--------------------------------------------------------------------------------
+# aws username that link with terraform
+data "aws_iam_user" "terraform_user" {
+  user_name = "user-aws-terraform-explore"
 }
 
 data "aws_iam_policy" "additional" {
   arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
 }
+
+# Creates the dedicated IAM role for the AWS Load Balancer Controller
+resource "aws_iam_role" "aws_load_balancer_controller" {
+  name = "EKS-ALB-Controller-Role" # Use the same name you created in the console
+
+  assume_role_policy = jsonencode({
+    Version   = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Principal = {
+          Federated = module.eks.oidc_provider_arn
+        },
+        Action = "sts:AssumeRoleWithWebIdentity",
+        Condition = {
+          StringEquals = {
+            # Ensures only the controller's service account can assume this role
+            "${module.eks.oidc_provider}:sub" = "system:serviceaccount:kube-system:aws-load-balancer-controller"
+          }
+        }
+      }
+    ]
+  })
+}
+
+# Attaches the required AWS-managed policy to the role
+resource "aws_iam_role_policy_attachment" "aws_load_balancer_controller" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSLoadBalancingPolicy"
+  role       = aws_iam_role.aws_load_balancer_controller.name
+}
 #--------------------------------------------------------------------------------
+# Installs the AWS Load Balancer Controller using its Helm chart
+resource "helm_release" "aws_load_balancer_controller" {
+  name       = "aws-load-balancer-controller"
+  repository = "https://aws.github.io/eks-charts"
+  chart      = "aws-load-balancer-controller"
+  namespace  = "kube-system"
+  version    = "1.8.1" # Pinning a version is a good practice
+
+  # Pass values to the Helm chart
+  set {
+    name  = "clusterName"
+    value = module.eks.cluster_name
+  }
+  set {
+    name  = "serviceAccount.create"
+    value = "true"
+  }
+  set {
+    name  = "serviceAccount.name"
+    value = "aws-load-balancer-controller"
+  }
+  # This links the Kubernetes Service Account to the IAM Role you created
+  set {
+    name  = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
+    value = aws_iam_role.aws_load_balancer_controller.arn
+  }
+
+  # Ensures the EKS cluster is ready before trying to install the chart
+  depends_on = [
+    module.eks.eks_managed_node_group["default"]
+  ]
+}
+#--------------------------------------------------------------------------------
+# key pair generate in local machine then upload to aws attach to instance
 resource "aws_key_pair" "eks_node_key" {
   key_name   = "eks-node-key"
   public_key = file("${path.module}/eks-node-key.pub")
 }
-data "aws_iam_user" "terraform_user" {
-  user_name = "user-aws-terraform-explore"
-}
-#--------------------------------------------------------------------------------
+
+# seach the lastest AMI based on filter 
 data "aws_ami" "eks_worker" {
   most_recent = true
   filter {
@@ -71,15 +155,15 @@ data "aws_ami" "eks_worker" {
   owners = ["121268973566"] 
 }
 
+# launch template for eks_node
 resource "aws_launch_template" "eks_nodes" {
   name_prefix   = "${var.environment.name}-eks-nodes"
   image_id      = data.aws_ami.eks_worker.id
   instance_type = var.instance_type
-  # key_name      = aws_key_pair.eks_node_key.key_name
 
   vpc_security_group_ids = [
     module.eks.cluster_primary_security_group_id #,
-    #aws_security_group.ssh_access_sg.id           # custom rule for SSH
+    # aws_security_group.ssh_access_sg.id           # custom rule for SSH
   ]
 
   block_device_mappings {
@@ -100,12 +184,7 @@ resource "aws_launch_template" "eks_nodes" {
     }
   }
 }
-# Attach the additional security group
-#  vpc_security_group_ids = [
-#    module.eks.cluster_primary_security_group_id,
-#    aws_security_group.ssh_access_sg.id]
 
-#}
 #--------------------------------------------------------------------------------
 # Create a KMS key for EKS secrets encryption
 resource "aws_kms_key" "eks_secrets" {
@@ -234,7 +313,8 @@ module "eks" {
       min_size     = var.min_size
       max_size     = var.max_size
       desired_size = var.desired_size
-
+      
+      # include key pair in node_group
       key_name     = aws_key_pair.eks_node_key.key_name
 
       launch_template_id      = aws_launch_template.eks_nodes.id
@@ -282,10 +362,6 @@ resource "aws_security_group" "ssh_access_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
-# EKS nodes with IAM role
-#data "aws_iam_role" "eks_nodes" {
-#  name = "eks-node-group-role"
-#}
 #--------------------------------------------------------------------------------
 # This section defines 2-node EC2 instance group.
 #resource "aws_eks_node_group" "general_purpose" {
