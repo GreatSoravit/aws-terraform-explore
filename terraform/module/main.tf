@@ -101,12 +101,12 @@ resource "aws_iam_role" "aws_load_balancer_controller" {
 }
 
 # Use IAM policy json file to create policy
-#resource "aws_iam_policy" "lb_controller_policy" {
-#  name        = "AWSLoadBalancerControllerIAMPolicy"
-#  path        = "/"
-#  description = "Policy for AWS Load Balancer Controller"
-#  policy      = file("${path.module}/IAM/aws_load_balancer_controller_iam_policy.json")  # path to downloaded file
-#}
+resource "aws_iam_policy" "lb_controller_policy" {
+  name        = "AWSLoadBalancerControllerIAMPolicy"
+  path        = "/"
+  description = "Policy for AWS Load Balancer Controller"
+  policy      = file("${path.module}/IAM/aws_load_balancer_controller_iam_policy.json")  # path to downloaded file
+}
 
 # Attaches the required AWS-managed policy to the role
 resource "aws_iam_role_policy_attachment" "aws_load_balancer_controller" {
