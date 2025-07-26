@@ -116,7 +116,7 @@ resource "aws_iam_role_policy_attachment" "aws_load_balancer_controller" {
 #--------------------------------------------------------------------------------
 # Installs the AWS Load Balancer Controller using its Helm chart
 resource "helm_release" "aws_load_balancer_controller" {
-  provider  = helm.eks
+  provider   = helm.eks
   name       = "aws-load-balancer-controller"
   repository = "https://aws.github.io/eks-charts"
   chart      = "aws-load-balancer-controller"
