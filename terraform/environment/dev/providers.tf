@@ -13,21 +13,21 @@ provider "aws" {
 
 # This data source gets a temporary authentication token for the EKS cluster.
 data "aws_eks_cluster_auth" "this" {
-  name = module.eks.cluster_id
+  name = mmodule.dev.module.eks.cluster_id
 }
 
 # Configure the Kubernetes provider to connect to the EKS cluster.
 provider "kubernetes" {
-  host                   = module.eks.cluster_endpoint
-  cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
+  host                   = module.dev.module.eks.cluster_endpoint
+  cluster_ca_certificate = base64decode(module.dev.module.eks.cluster_certificate_authority_data)
   token                  = data.aws_eks_cluster_auth.this.token
 }
 
 # Configure the Helm provider to connect to the EKS cluster.
 provider "helm" {
   kubernetes {
-    host                   = module.eks.cluster_endpoint
-    cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
+    host                   = module.dev.module.eks.cluster_endpoint
+    cluster_ca_certificate = base64decode(module.dev.module.eks.cluster_certificate_authority_data)
     token                  = data.aws_eks_cluster_auth.this.token
   }
 }
