@@ -33,5 +33,5 @@ data "aws_security_group" "node_sg" {
 }
 
 output "node_sg_name" {
-  value = data.aws_security_group.node_sg.name
+  value =  module.eks.node_security_group_name
 }

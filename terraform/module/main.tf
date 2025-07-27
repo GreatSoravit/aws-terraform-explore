@@ -53,6 +53,14 @@ resource "aws_security_group" "additional" {
   tags = { Name = "aws-terraform-explore" }
 }
 
+#data "aws_security_group" "node_sg" {
+#  filter {
+#    name   = "tag:Name"
+#    values = ["${var.environment.name}-eks-cluster-node"]
+#  }
+#  vpc_id = module.vpc.vpc_id
+#}
+
 # Security group for eks cluster
 resource "aws_security_group" "eks_cluster_sg" {
   name_prefix = "${var.environment.name}-eks-cluster"
@@ -63,6 +71,7 @@ resource "aws_security_group" "eks_cluster_sg" {
     Name   = "${var.environment.name}-eks-cluster"
     value  = "owned"
   }
+
 }
 
 # Allows HTTP traffic from the ALB to the nodes
@@ -340,16 +349,10 @@ module "eks" {
   }
 }
 
-data "aws_security_group" "node_sg" {
-  filter {
-    name   = "tag:Name"
-    values = ["${var.environment.name}-eks-cluster-node"]
-  }
-  vpc_id = module.vpc.vpc_id
-}
-
 resource "aws_ec2_tag" "eks_node_sg_owned_tag" {
-  resource_id = data.aws_security_group.node_sg.id
+  #resource_id = data.aws_security_group.node_sg.id
+  resource_id = module.eks.node_security_group_id
+
   key         = "kubernetes.io/cluster/${module.eks.cluster_name}"
   value       = "owned"
 }
