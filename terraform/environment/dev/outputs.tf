@@ -28,7 +28,3 @@ output "aws_load_balancer_controller_iam_role_arn" {
 output "configure_kubectl" {
   value = module.dev.configure_kubectl
 }
-
-output "node_sg_name" {
-  value = module.dev.node_sg_name
-}
