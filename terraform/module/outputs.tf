@@ -29,6 +29,7 @@ output "configure_kubectl" {
 }
 
 output "node_sg" {
-  id = data.aws_security_group.node_security_group_id
+  description = "Security Group for node in eks"
+  value = data.aws_security_group.node_security_group_id
 }
 
