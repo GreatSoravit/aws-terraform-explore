@@ -34,17 +34,6 @@ module "vpc" {
   }
 }
 
-resource "aws_security_group" "eks_cluster_sg" {
-  name_prefix = "${var.environment.name}-eks-cluster"
-  description = "EKS cluster primary security group."
-  vpc_id      = module.vpc.vpc_id
-
-  tags = {
-    Name   = "${var.environment.name}-eks-cluster"
-    value  = "owned"
-  }
-}
-
 # additional security group to access following IP
 resource "aws_security_group" "additional" {
   name_prefix = "aws-terraform-explore-additional"
