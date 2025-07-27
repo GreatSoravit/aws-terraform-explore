@@ -69,9 +69,16 @@ resource "aws_security_group" "eks_cluster_sg" {
 
   tags = {
     Name   = "${var.environment.name}-eks-cluster"
-    value  = "owned"
   }
+}
 
+resource "aws_ec2_tag" "eks_node_sg_owned_tag" {
+  #resource_id = data.aws_security_group.node_sg.id
+  #resource_id = module.eks.node_security_group_id
+  resource_id = module.eks.eks_managed_node_groups["default"].security_group_id
+
+  key         = "kubernetes.io/cluster/${module.eks.cluster_name}"
+  value       = "owned"
 }
 
 # Allows HTTP traffic from the ALB to the nodes
@@ -347,14 +354,6 @@ module "eks" {
       }
     }
   }
-}
-
-resource "aws_ec2_tag" "eks_node_sg_owned_tag" {
-  #resource_id = data.aws_security_group.node_sg.id
-  resource_id = module.eks.node_security_group_id
-
-  key         = "kubernetes.io/cluster/${module.eks.cluster_name}"
-  value       = "owned"
 }
 #--------------------------------------------------------------------------------
 # Data source to get your current IP address
