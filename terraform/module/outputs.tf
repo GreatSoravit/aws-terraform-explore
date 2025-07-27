@@ -28,7 +28,7 @@ output "configure_kubectl" {
   value       = "aws eks update-kubeconfig --region ${data.aws_region.current.name} --name ${module.eks.cluster_name}"
 }
 
-data "aws_security_group" "node_sg" {
-  id = module.eks.node_security_group_id
+output "aws_security_group" "node_sg" {
+  id = data.aws_security_group.node_security_group_id
 }
 
