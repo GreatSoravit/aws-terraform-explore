@@ -53,6 +53,18 @@ resource "aws_security_group" "additional" {
   tags = { Name = "aws-terraform-explore" }
 }
 
+# Security group for eks cluster
+resource "aws_security_group" "eks_cluster_sg" {
+  name_prefix = "${var.environment.name}-eks-cluster"
+  description = "EKS cluster primary security group."
+  vpc_id      = module.vpc.vpc_id
+
+  tags = {
+    Name   = "${var.environment.name}-eks-cluster"
+    value  = "owned"
+  }
+}
+
 # Allows HTTP traffic from the ALB to the nodes
 resource "aws_security_group_rule" "allow_alb_http_to_nodes" {
   description              = "Allow HTTP from ALB to EKS nodes"
@@ -60,8 +72,10 @@ resource "aws_security_group_rule" "allow_alb_http_to_nodes" {
   from_port                = 80
   to_port                  = 80
   protocol                 = "tcp"
-  source_security_group_id = module.eks.cluster_primary_security_group_id
+  source_security_group_id = aws_security_group.eks_cluster_sg.id
   security_group_id        = module.eks.node_security_group_id
+  #source_security_group_id = module.eks.cluster_primary_security_group_id
+  #security_group_id        = module.eks.node_security_group_id
 }
 
 # Allows HTTPS traffic from the ALB to the nodes
@@ -71,8 +85,10 @@ resource "aws_security_group_rule" "allow_alb_https_to_nodes" {
   from_port                = 443
   to_port                  = 443
   protocol                 = "tcp"
-  source_security_group_id = module.eks.cluster_primary_security_group_id
+  source_security_group_id = aws_security_group.eks_cluster_sg.id
   security_group_id        = module.eks.node_security_group_id
+  #source_security_group_id = module.eks.cluster_primary_security_group_id
+  #security_group_id        = module.eks.node_security_group_id
 }
 #--------------------------------------------------------------------------------
 # aws username that link with terraform
@@ -148,7 +164,8 @@ resource "aws_launch_template" "eks_nodes" {
   instance_type = var.instance_type
 
   vpc_security_group_ids = [
-    module.eks.cluster_primary_security_group_id #,
+    aws_security_group.eks_cluster_sg.id
+    # module.eks.cluster_primary_security_group_id #,
     # aws_security_group.ssh_access_sg.id           # custom rule for SSH
   ]
 
@@ -193,6 +210,8 @@ module "eks" {
   cluster_name    = "${var.environment.name}-eks-cluster"
   cluster_version = var.cluster_version
   cluster_endpoint_public_access = true
+  cluster_create_security_group = false
+  cluster_security_group_id = aws_security_group.eks_cluster_sg.id
 
   access_entries = {
     # A descriptive name for the access entry
