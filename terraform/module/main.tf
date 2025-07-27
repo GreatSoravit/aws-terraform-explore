@@ -349,6 +349,11 @@ module "eks" {
   }
 }
 
+data "aws_security_group" "eks_node_sg_data" {
+  # Use the ID from the module output to find the security group
+  id = module.eks.eks_managed_node_groups["default"].security_group_id
+}
+
 resource "aws_ec2_tag" "eks_node_sg_owned_tag" {
   #resource_id = data.aws_security_group.node_sg.id
   resource_id = module.eks.node_security_group_id

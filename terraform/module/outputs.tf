@@ -34,5 +34,5 @@ data "aws_security_group" "node_sg" {
 
 output "node_sg_name" {
   description = "The name of the 'default' node group's security group."
-  value = module.eks.eks_managed_node_groups["default"].security_group_name
+  value = data.aws_security_group.eks_node_sg_data.name
 }
