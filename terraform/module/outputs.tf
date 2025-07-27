@@ -32,7 +32,3 @@ data "aws_security_group" "node_sg" {
   id = module.eks.node_security_group_id
 }
 
-output "node_sg_name" {
-  description = "The name of the 'default' node group's security group."
-  value = data.aws_security_group.eks_node_sg_data.name
-}
