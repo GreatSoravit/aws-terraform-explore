@@ -64,6 +64,18 @@ resource "aws_security_group" "additional" {
   tags = { Name = "aws-terraform-explore" }
 }
 
+# Security group for eks cluster
+resource "aws_security_group" "eks_cluster_sg" {
+  name_prefix = "${var.environment.name}-eks-cluster"
+  description = "EKS cluster primary security group."
+  vpc_id      = module.vpc.vpc_id
+
+  tags = {
+    Name   = "${var.environment.name}-eks-cluster"
+    value  = "owned"
+  }
+}
+
 # Allows HTTP traffic from the ALB to the nodes
 resource "aws_security_group_rule" "allow_alb_http_to_nodes" {
   description              = "Allow HTTP from ALB to EKS nodes"
@@ -71,7 +83,6 @@ resource "aws_security_group_rule" "allow_alb_http_to_nodes" {
   from_port                = 80
   to_port                  = 80
   protocol                 = "tcp"
-  # Change this line
   source_security_group_id = aws_security_group.eks_cluster_sg.id
   security_group_id        = module.eks.node_security_group_id
   #source_security_group_id = module.eks.cluster_primary_security_group_id
@@ -85,7 +96,6 @@ resource "aws_security_group_rule" "allow_alb_https_to_nodes" {
   from_port                = 443
   to_port                  = 443
   protocol                 = "tcp"
-  # Change this line
   source_security_group_id = aws_security_group.eks_cluster_sg.id
   security_group_id        = module.eks.node_security_group_id
   #source_security_group_id = module.eks.cluster_primary_security_group_id
@@ -341,8 +351,16 @@ module "eks" {
   }
 }
 
+data "aws_security_group" "node_sg" {
+  filter {
+    name   = "tag:Name"
+    values = ["${var.environment.name}-eks-cluster-node"]
+  }
+  vpc_id = module.vpc.vpc_id
+}
+
 resource "aws_ec2_tag" "eks_node_sg_owned_tag" {
-  resource_id = module.eks.node_security_group_id
+  resource_id = data.aws_security_group.node_sg.id
   key         = "kubernetes.io/cluster/${module.eks.cluster_name}"
   value       = "owned"
 }
