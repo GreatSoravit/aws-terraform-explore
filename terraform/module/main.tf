@@ -79,6 +79,7 @@ data "aws_security_group" "eks_cluster_tag_sg" {
     name   = "tag:Name"
     values = ["eks-cluster-sg-dev-eks-cluster-*"]  # wildcard match
   }
+  vpc_id = module.vpc.vpc_id
 }
 
 variable "remove_owned_tag" {
@@ -88,9 +89,9 @@ variable "remove_owned_tag" {
 
 resource "aws_ec2_tag" "remove_owned_tag_from_cluster_sg" {
   count = var.remove_owned_tag ? 1 : 0
+
   resource_id = data.aws_security_group.eks_cluster_tag_sg.id
   key         = "kubernetes.io/cluster/${module.eks.cluster_name}"
-
   value       = ""  # Can also be "null", AWS treats both as effectively unsetting
 }
 
