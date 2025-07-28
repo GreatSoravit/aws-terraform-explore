@@ -278,6 +278,8 @@ module "eks" {
   subnet_ids = module.vpc.private_subnets
   control_plane_subnet_ids = module.vpc.intra_subnets
 
+  cluster_security_group_tags = {}
+
   node_security_group_tags = {
     "kubernetes.io/cluster/${var.environment.name}-eks-cluster" = "owned"
   }
