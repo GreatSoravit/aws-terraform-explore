@@ -64,61 +64,62 @@ resource "aws_security_group" "eks_cluster_sg" {
   }
 }
 
-#data "aws_security_group" "node_sg" {
-  # EKS module to finish creating the node security group.
+#resource "null_resource" "wait_for_nodes" {
 #  depends_on = [module.eks.node_security_group_id]
+#}
+
+data "aws_security_group" "node_sg" {
+  # EKS module to finish creating the node security group.
+  depends_on = [module.eks.node_security_group_id]
+  filter {
+    name   = "tag:Name"
+    values = ["${var.environment.name}-eks-cluster-node"]
+  }
+  vpc_id = module.vpc.vpc_id
+}
+
+#data "aws_security_groups" "eks_cluster_tag_sg" {
+#  depends_on = [null_resource.wait_for_nodes]
+
 #  filter {
 #    name   = "tag:Name"
-#    values = ["${var.environment.name}-eks-cluster-node"]
+#    values = ["eks-cluster-sg-dev-eks-cluster-*"]
+#  }
+
+# filter {
+#    name   = "tag:aws:eks:cluster-name"
+#    values = ["dev-eks-cluster"]
 #  }
 #  vpc_id = module.vpc.vpc_id
 #}
 
-resource "null_resource" "wait_for_nodes" {
-  depends_on = [module.eks.node_security_group_id]
-}
+#variable "remove_owned_tag" {
+#  type    = bool
+#  default = true  # Set to true to remove the tag
+#}
 
-data "aws_security_groups" "eks_cluster_tag_sg" {
-  depends_on = [null_resource.wait_for_nodes]  # trick to enforce dependency
-
-  filter {
-    name   = "tag:Name"
-    values = ["eks-cluster-sg-dev-eks-cluster-*"]
-  }
-
-  filter {
-    name   = "tag:aws:eks:cluster-name"
-    values = ["dev-eks-cluster"]
-  }
-  #vpc_id = module.vpc.vpc_id
-}
-
-variable "remove_owned_tag" {
-  type    = bool
-  default = true  # Set to true to remove the tag
-}
-
-resource "aws_ec2_tag" "remove_owned_tag_from_cluster_sg" {
+#resource "aws_ec2_tag" "remove_owned_tag_from_cluster_sg" {
   #count = var.remove_owned_tag ? 1 : 0
 
-  for_each = toset(data.aws_security_groups.eks_cluster_tag_sg.ids)
-  resource_id = each.value
+#  for_each = toset(data.aws_security_groups.eks_cluster_tag_sg.ids)
+#  resource_id = each.value
   #resource_id = data.aws_security_group.eks_cluster_tag_sg.id
   #key         = "kubernetes.io/cluster/${data.aws_security_group.eks_cluster_tag_sg.tags["aws:eks:cluster-name"]}"
-  key         = "kubernetes.io/cluster/${module.eks.cluster_name}"
-  value       = ""  # Can also be "null", AWS treats both as effectively unsetting
+#  key         = "kubernetes.io/cluster/${module.eks.cluster_name}"
+#  value       = ""  # Can also be "null", AWS treats both as effectively unsetting
 
+#  depends_on = [null_resource.wait_for_nodes]
+#}
+
+resource "aws_ec2_tag" "eks_node_sg_owned_tag" {
   depends_on = [null_resource.wait_for_nodes]
-}
-
-#resource "aws_ec2_tag" "eks_node_sg_owned_tag" {
-  #resource_id = data.aws_security_group.node_sg.id
-#  resource_id = module.eks.node_security_group_id
+  resource_id = data.aws_security_group.node_sg.id
+  #resource_id = module.eks.node_security_group_id
   #resource_id = module.eks.eks_managed_node_groups["default"].security_group_id
 
-#  key         = "kubernetes.io/cluster/${module.eks.cluster_name}"
-#  value       = "owned"
-#}
+  key         = "kubernetes.io/cluster/${module.eks.cluster_name}"
+  value       = "owned"
+}
 
 # Allows HTTP traffic from the ALB to the nodes
 resource "aws_security_group_rule" "allow_alb_http_to_nodes" {
@@ -315,9 +316,9 @@ module "eks" {
   subnet_ids = module.vpc.private_subnets
   control_plane_subnet_ids = module.vpc.intra_subnets
 
-  node_security_group_tags = {
-    "kubernetes.io/cluster/${var.environment.name}-eks-cluster" = "owned"
-  }
+  #node_security_group_tags = {
+  #  "kubernetes.io/cluster/${var.environment.name}-eks-cluster" = "owned"
+  #}
 
   # Extend cluster security group rules
   cluster_security_group_additional_rules = {
