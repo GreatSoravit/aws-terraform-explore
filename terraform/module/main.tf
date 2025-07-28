@@ -54,7 +54,7 @@ resource "aws_security_group" "additional" {
 }
 
 # Security group for eks cluster
-resource "aws_security_group" "eks_cluster_sg" {
+resource "aws_security_groups" "eks_cluster_sg" {
   name_prefix = "${var.environment.name}-eks-cluster"
   description = "EKS cluster primary security group."
   vpc_id      = module.vpc.vpc_id
