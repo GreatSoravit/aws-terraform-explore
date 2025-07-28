@@ -75,7 +75,7 @@ resource "aws_security_group" "eks_cluster_sg" {
 #}
 
 resource "null_resource" "wait_for_nodes" {
-  depends_on = [module.eks]
+  depends_on = [module.eks.node_security_group_id]
 }
 
 data "aws_security_groups" "eks_cluster_tag_sg" {
@@ -98,7 +98,7 @@ variable "remove_owned_tag" {
 resource "aws_ec2_tag" "remove_owned_tag_from_cluster_sg" {
   #count = var.remove_owned_tag ? 1 : 0
 
-  for_each = toset(data.aws_security_groups.eks_cluster_sgs.ids)
+  for_each = toset(data.aws_security_groups.eks_cluster_tag_sg.ids)
   resource_id = each.value
   #resource_id = data.aws_security_group.eks_cluster_tag_sg.id
   #key         = "kubernetes.io/cluster/${data.aws_security_group.eks_cluster_tag_sg.tags["aws:eks:cluster-name"]}"
