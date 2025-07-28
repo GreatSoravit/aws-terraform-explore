@@ -78,16 +78,19 @@ resource "null_resource" "wait_for_nodes" {
   depends_on = [module.eks.node_security_group_id]
 }
 
-data "aws_security_group" "eks_cluster_tag_sg" {
+data "aws_security_groups" "eks_cluster_tag_sg" {
   depends_on = [null_resource.wait_for_nodes]  # trick to enforce dependency
 
   filter {
-    #name   = "tag:Name"
-    #values = ["eks-cluster-sg-dev-eks-cluster-*"]  # wildcard match
+    name   = "tag:Name"
+    values = ["eks-cluster-sg-dev-eks-cluster-*"]
+  }
+
+  filter {
     name   = "tag:aws:eks:cluster-name"
     values = ["dev-eks-cluster"]
   }
-  vpc_id = module.vpc.vpc_id
+  #vpc_id = module.vpc.vpc_id
 }
 
 variable "remove_owned_tag" {
@@ -98,9 +101,9 @@ variable "remove_owned_tag" {
 resource "aws_ec2_tag" "remove_owned_tag_from_cluster_sg" {
   #count = var.remove_owned_tag ? 1 : 0
 
-  #for_each = toset(data.aws_security_groups.eks_cluster_tag_sg.ids)
-  #resource_id = each.value
-  resource_id = data.aws_security_group.eks_cluster_tag_sg.id
+  for_each = toset(data.aws_security_groups.eks_cluster_tag_sg.ids)
+  resource_id = each.value
+  #resource_id = data.aws_security_group.eks_cluster_tag_sg.id
   #key         = "kubernetes.io/cluster/${data.aws_security_group.eks_cluster_tag_sg.tags["aws:eks:cluster-name"]}"
   key         = "kubernetes.io/cluster/${module.eks.cluster_name}"
   value       = ""  # Can also be "null", AWS treats both as effectively unsetting
