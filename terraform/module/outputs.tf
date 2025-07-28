@@ -27,9 +27,3 @@ output "configure_kubectl" {
   description = "Run this command to configure kubectl to connect to the EKS cluster."
   value       = "aws eks update-kubeconfig --region ${data.aws_region.current.name} --name ${module.eks.cluster_name}"
 }
-
-output "node_sg" {
-  description = "Security Group for node in eks"
-  value = aws_ec2_tag.eks_node_sg_owned_tag.id
-}
-
