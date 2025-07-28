@@ -74,6 +74,27 @@ resource "aws_security_group" "eks_cluster_sg" {
 #  vpc_id = module.vpc.vpc_id
 #}
 
+data "aws_security_group" "eks_cluster_sg" {
+  filter {
+    name   = "tag:Name"
+    values = ["eks-cluster-sg-dev-eks-cluster-*"]  # wildcard match
+  }
+}
+
+variable "remove_owned_tag" {
+  type    = bool
+  default = true  # Set to true to remove the tag
+}
+
+resource "aws_ec2_tag" "remove_owned_tag_from_cluster_sg" {
+  count = var.remove_owned_tag ? 1 : 0
+  resource_id = data.aws_security_group.eks_cluster_sg.id
+  key         = "kubernetes.io/cluster/${module.eks.cluster_name}"
+
+  value       = ""  # Can also be "null", AWS treats both as effectively unsetting
+}
+
+
 #resource "aws_ec2_tag" "eks_node_sg_owned_tag" {
   #resource_id = data.aws_security_group.node_sg.id
 #  resource_id = module.eks.node_security_group_id
@@ -230,7 +251,7 @@ module "eks" {
   cluster_endpoint_public_access = true
   #cluster_create_security_group = false
   cluster_security_group_id = aws_security_group.eks_cluster_sg.id
-  depends_on = [aws_security_group.eks_cluster_sg]
+  #depends_on = [aws_security_group.eks_cluster_sg]
 
   access_entries = {
     # A descriptive name for the access entry
@@ -277,8 +298,6 @@ module "eks" {
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
   control_plane_subnet_ids = module.vpc.intra_subnets
-
-  cluster_security_group_tags = {}
 
   node_security_group_tags = {
     "kubernetes.io/cluster/${var.environment.name}-eks-cluster" = "owned"
