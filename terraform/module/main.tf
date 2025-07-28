@@ -87,7 +87,7 @@ data "aws_security_groups" "eks_cluster_tag_sg" {
     name   = "tag:aws:eks:cluster-name"
     values = ["dev-eks-cluster"]
   }
-  vpc_id = module.vpc.vpc_id
+  vpc_ids = [module.vpc.vpc_id]
 }
 
 variable "remove_owned_tag" {
