@@ -74,14 +74,14 @@ resource "aws_security_group" "eks_cluster_sg" {
 #  vpc_id = module.vpc.vpc_id
 #}
 
-resource "aws_ec2_tag" "eks_node_sg_owned_tag" {
+#resource "aws_ec2_tag" "eks_node_sg_owned_tag" {
   #resource_id = data.aws_security_group.node_sg.id
-  resource_id = module.eks.node_security_group_id
+#  resource_id = module.eks.node_security_group_id
   #resource_id = module.eks.eks_managed_node_groups["default"].security_group_id
 
-  key         = "kubernetes.io/cluster/${module.eks.cluster_name}"
-  value       = "owned"
-}
+#  key         = "kubernetes.io/cluster/${module.eks.cluster_name}"
+#  value       = "owned"
+#}
 
 # Allows HTTP traffic from the ALB to the nodes
 resource "aws_security_group_rule" "allow_alb_http_to_nodes" {
@@ -276,6 +276,10 @@ module "eks" {
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
   control_plane_subnet_ids = module.vpc.intra_subnets
+
+  node_security_group_tags = {
+    "kubernetes.io/cluster/${var.environment.name}-eks-cluster" = "owned"
+  }
 
   # Extend cluster security group rules
   cluster_security_group_additional_rules = {
