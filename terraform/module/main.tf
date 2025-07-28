@@ -75,7 +75,7 @@ resource "aws_security_group" "eks_cluster_sg" {
 #}
 
 resource "null_resource" "wait_for_nodes" {
-  depends_on = [module.eks.eks_managed_node_groups["default"]]
+  depends_on = [module.eks]
 }
 
 data "aws_security_groups" "eks_cluster_tag_sg" {
