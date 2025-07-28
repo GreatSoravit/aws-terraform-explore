@@ -65,6 +65,8 @@ resource "aws_security_group" "eks_cluster_sg" {
 }
 
 data "aws_security_group" "node_sg" {
+  # EKS module to finish creating the node security group.
+  depends_on = [module.eks.node_security_group_id]
   filter {
     name   = "tag:Name"
     values = ["${var.environment.name}-eks-cluster-node"]
