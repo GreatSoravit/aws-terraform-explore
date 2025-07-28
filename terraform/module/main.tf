@@ -112,7 +112,7 @@ data "aws_security_group" "node_sg" {
 #}
 
 resource "aws_ec2_tag" "eks_node_sg_owned_tag" {
-  depends_on = [null_resource.wait_for_nodes]
+  #depends_on = [module.eks.node_security_group_id]
   resource_id = data.aws_security_group.node_sg.id
   #resource_id = module.eks.node_security_group_id
   #resource_id = module.eks.eks_managed_node_groups["default"].security_group_id
