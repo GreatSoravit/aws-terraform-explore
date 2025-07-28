@@ -29,5 +29,5 @@ output "configure_kubectl" {
 }
 
 output "matched_sg_id" {
-  value = data.aws_security_group.eks_cluster_sg.id
+  value = data.aws_security_group.eks_cluster_tag_sg.id
 }
