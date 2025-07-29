@@ -253,7 +253,8 @@ resource "aws_launch_template" "eks_nodes" {
   instance_type = var.instance_type
   
   vpc_security_group_ids = [
-    aws_security_group.eks_cluster_sg.id
+    #aws_security_group.eks_cluster_sg.id
+    aws_security_group.additional.id
     # module.eks.cluster_primary_security_group_id #,
     # aws_security_group.ssh_access_sg.id           # custom rule for SSH
   ]
