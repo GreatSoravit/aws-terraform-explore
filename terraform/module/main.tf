@@ -113,7 +113,7 @@ data "aws_security_group" "node_sg" {
   key         = "kubernetes.io/cluster/${module.eks.cluster_name}"
   value       = ""  # Can also be "null", AWS treats both as effectively unsetting
 
-  depends_on = [aws_security_group.node_sg]
+  #depends_on = [aws_security_group.node_sg]
 #}
 
 #resource "aws_ec2_tag" "eks_node_sg_owned_tag" {
