@@ -91,7 +91,7 @@ data "aws_security_group" "node_sg" {
     name   = "tag:Name"
     values = ["eks-cluster-sg-dev-eks-cluster-*"] # ["${var.environment.name}-eks-cluster-node"]
   }
-  filter {
+#  filter {
 #    name   = "tag:aws:eks:cluster-name"
 #    values = ["dev-eks-cluster"]
 #  }
