@@ -219,11 +219,11 @@ resource "aws_launch_template" "eks_nodes" {
   image_id      = data.aws_ami.eks_worker.id
   instance_type = var.instance_type
   
-  vpc_security_group_ids = [
+  #vpc_security_group_ids = [
     aws_security_group.eks_cluster_sg.id
     # module.eks.cluster_primary_security_group_id #,
     # aws_security_group.ssh_access_sg.id           # custom rule for SSH
-  ]
+  #]
 
   block_device_mappings {
       device_name = "/dev/xvda"
