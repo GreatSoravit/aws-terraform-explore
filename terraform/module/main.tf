@@ -266,9 +266,10 @@ module "eks" {
   cluster_name    = "${var.environment.name}-eks-cluster"
   cluster_version = var.cluster_version
   cluster_endpoint_public_access = true
-  #cluster_create_security_group = false
+
+  create_cluster_security_group = false
   cluster_security_group_id = aws_security_group.eks_cluster_sg.id
-  #depends_on = [aws_security_group.eks_cluster_sg]
+  depends_on = [aws_security_group.eks_cluster_sg]
 
   access_entries = {
     # A descriptive name for the access entry
@@ -316,10 +317,6 @@ module "eks" {
   subnet_ids = module.vpc.private_subnets
   control_plane_subnet_ids = module.vpc.intra_subnets
 
-  #node_security_group_tags = {
-  #  "kubernetes.io/cluster/${var.environment.name}-eks-cluster" = "owned"
-  #}
-
   # Extend cluster security group rules
   cluster_security_group_additional_rules = {
     ingress_nodes_ephemeral_ports_tcp = {
@@ -330,16 +327,7 @@ module "eks" {
       type                       = "ingress"
       source_node_security_group = true
     }
-    # Test: https://github.com/terraform-aws-modules/terraform-aws-eks/pull/2319
-    ingress_source_security_group_id = {
-      description              = "Ingress from another computed security group"
-      protocol                 = "tcp"
-      from_port                = 22
-      to_port                  = 22
-      type                     = "ingress"
-      source_node_security_group = true
-      #source_security_group_id = aws_security_group.additional.id
-    }
+
     ssh_from_trusted_cidrs = {
     description  = "SSH access from internal & specific external IPs"
     protocol     = "tcp"
@@ -352,9 +340,13 @@ module "eks" {
       "192.168.0.0/16",
       "49.228.99.81/32"
     ]
+    }
   }
-    
-  }
+
+  create_node_security_group = true
+  # set when need to create custom security group for node to tag
+  #node_security_group_tags = { "kubernetes.io/cluster/${var.environment.name}-eks-cluster" = "owned" }
+
  # Extend node-to-node security group rules
   node_security_group_additional_rules = {
     ingress_self_all = {
@@ -365,16 +357,7 @@ module "eks" {
       type        = "ingress"
       self        = true
     }
-    # Test: https://github.com/terraform-aws-modules/terraform-aws-eks/pull/2319
-    ingress_source_security_group_id = {
-      description              = "Ingress from another computed security group"
-      protocol                 = "tcp"
-      from_port                = 22
-      to_port                  = 22
-      type                     = "ingress"
-      source_node_security_group = true
-      #source_security_group_id = aws_security_group.additional.id
-    }
+
     ssh_from_trusted_cidrs = {
     description  = "SSH access from internal & specific external IPs"
     protocol     = "tcp"
@@ -396,7 +379,8 @@ module "eks" {
     instance_types = [var.instance_type]
 
     attach_cluster_primary_security_group = true
-    #vpc_security_group_ids                = [aws_security_group.additional.id]
+    # set when need to custom security group for node
+    # vpc_security_group_ids                = [aws_security_group.additional.id] 
     iam_role_additional_policies = {
       additional = data.aws_iam_policy.additional.arn
     }
@@ -414,9 +398,6 @@ module "eks" {
 
       launch_template_id      = aws_launch_template.eks_nodes.id
       launch_template_version = aws_launch_template.eks_nodes.latest_version
-
-      # instance_types = [var.instance_type]
-      # capacity_type  = "ON_DEMAND"
 
       # Needed by the aws-ebs-csi-driver
       #iam_role_additional_policies = {
