@@ -135,17 +135,17 @@ resource "aws_security_group_rule" "allow_alb_http_to_nodes" {
 }
 
 # Allows HTTPS traffic from the ALB to the nodes
-resource "aws_security_group_rule" "allow_alb_https_to_nodes" {
-  description              = "Allow HTTPS from ALB to EKS nodes"
-  type                     = "ingress"
-  from_port                = 443
-  to_port                  = 443
-  protocol                 = "tcp"
-  source_security_group_id = aws_security_group.eks_cluster_sg.id
-  security_group_id        = module.eks.node_security_group_id
-  #source_security_group_id = module.eks.cluster_primary_security_group_id
-  #security_group_id        = module.eks.node_security_group_id
-}
+#resource "aws_security_group_rule" "allow_alb_https_to_nodes" {
+#  description              = "Allow HTTPS from ALB to EKS nodes"
+#  type                     = "ingress"
+#  from_port                = 443
+#  to_port                  = 443
+#  protocol                 = "tcp"
+#  source_security_group_id = aws_security_group.eks_cluster_sg.id
+#  security_group_id        = module.eks.node_security_group_id
+#  #source_security_group_id = module.eks.cluster_primary_security_group_id
+#  #security_group_id        = module.eks.node_security_group_id
+#}
 #--------------------------------------------------------------------------------
 # aws username that link with terraform
 data "aws_iam_user" "terraform_user" {
@@ -378,7 +378,7 @@ module "eks" {
     ami_type       = "AL2_x86_64"
     instance_types = [var.instance_type]
 
-    attach_cluster_primary_security_group = true
+    attach_cluster_primary_security_group = false
     # set when need to custom security group for node
     # vpc_security_group_ids                = [aws_security_group.additional.id] 
     iam_role_additional_policies = {
