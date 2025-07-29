@@ -111,15 +111,15 @@ data "aws_security_group" "node_sg" {
 #  depends_on = [null_resource.wait_for_nodes]
 #}
 
-resource "aws_ec2_tag" "eks_node_sg_owned_tag" {
+#resource "aws_ec2_tag" "eks_node_sg_owned_tag" {
   #depends_on = [module.eks.node_security_group_id]
-  resource_id = data.aws_security_group.node_sg.id
+#  resource_id = data.aws_security_group.node_sg.id
   #resource_id = module.eks.node_security_group_id
   #resource_id = module.eks.eks_managed_node_groups["default"].security_group_id
 
-  key         = "kubernetes.io/cluster/${module.eks.cluster_name}"
-  value       = "owned"
-}
+#  key         = "kubernetes.io/cluster/${module.eks.cluster_name}"
+#  value       = "owned"
+#}
 
 # Allows HTTP traffic from the ALB to the nodes
 resource "aws_security_group_rule" "allow_alb_http_to_nodes" {
