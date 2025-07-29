@@ -35,23 +35,23 @@ module "vpc" {
 }
 
 # additional security group to access following IP
-resource "aws_security_group" "additional" {
-  name_prefix = "aws-terraform-explore-additional"
-  vpc_id      = module.vpc.vpc_id
+#resource "aws_security_group" "additional" {
+#  name_prefix = "aws-terraform-explore-additional"
+#  vpc_id      = module.vpc.vpc_id
 
-  ingress {
-    from_port = 22
-    to_port   = 22
-    protocol  = "tcp"
-    cidr_blocks = [
-      "10.0.0.0/8",
-      "172.16.0.0/12",
-      "192.168.0.0/16",
-      "49.228.99.81/32",
-    ]
-  }
-  tags = { Name = "aws-terraform-explore" }
-}
+#  ingress {#z
+#    from_port = 22
+#    to_port   = 22
+#    protocol  = "tcp"
+#    cidr_blocks = [
+#      "10.0.0.0/8",
+#      "172.16.0.0/12",
+#      "192.168.0.0/16",
+#      "49.228.99.81/32",
+#    ]
+#  }
+#  tags = { Name = "aws-terraform-explore" }
+#}
 
 # Security group for eks cluster
 resource "aws_security_group" "eks_cluster_sg" {
@@ -337,8 +337,23 @@ module "eks" {
       from_port                = 22
       to_port                  = 22
       type                     = "ingress"
-      source_security_group_id = aws_security_group.additional.id
+      source_node_security_group = true
+      #source_security_group_id = aws_security_group.additional.id
     }
+    ssh_from_trusted_cidrs = {
+    description  = "SSH access from internal & specific external IPs"
+    protocol     = "tcp"
+    from_port    = 22
+    to_port      = 22
+    type         = "ingress"
+    cidr_blocks  = [
+      "10.0.0.0/8",
+      "172.16.0.0/12",
+      "192.168.0.0/16",
+      "49.228.99.81/32"
+    ]
+  }
+    
   }
  # Extend node-to-node security group rules
   node_security_group_additional_rules = {
@@ -357,8 +372,22 @@ module "eks" {
       from_port                = 22
       to_port                  = 22
       type                     = "ingress"
-      source_security_group_id = aws_security_group.additional.id
+      source_node_security_group = true
+      #source_security_group_id = aws_security_group.additional.id
     }
+    ssh_from_trusted_cidrs = {
+    description  = "SSH access from internal & specific external IPs"
+    protocol     = "tcp"
+    from_port    = 22
+    to_port      = 22
+    type         = "ingress"
+    cidr_blocks  = [
+      "10.0.0.0/8",
+      "172.16.0.0/12",
+      "192.168.0.0/16",
+      "49.228.99.81/32"
+    ]
+  }
   }
 
   # EKS Managed Node Group(s)
@@ -367,7 +396,7 @@ module "eks" {
     instance_types = [var.instance_type]
 
     attach_cluster_primary_security_group = true
-    vpc_security_group_ids                = [aws_security_group.additional.id]
+    #vpc_security_group_ids                = [aws_security_group.additional.id]
     iam_role_additional_policies = {
       additional = data.aws_iam_policy.additional.arn
     }
