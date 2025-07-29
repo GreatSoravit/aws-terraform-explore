@@ -36,9 +36,11 @@ module "vpc" {
 
 # additional security group to access following IP
 resource "aws_security_group" "additional" {
-  name_prefix = "aws-terraform-explore-additional"
+  name_prefix = "eks-cluster-sg-aws-terraform-explore-additional-sg"
   vpc_id      = module.vpc.vpc_id
+  description = "Custom EKS cluster SG replacement"
 
+  # SSH access for specific internal & external IPs
   ingress {
     from_port = 22
     to_port   = 22
@@ -50,19 +52,55 @@ resource "aws_security_group" "additional" {
       "49.228.99.81/32",
     ]
   }
+
+  # Required: Allow kubelet/worker node -> control plane communication
+  ingress {
+    description = "Kubelet API access from EKS worker nodes"
+    from_port       = 443
+    to_port         = 443
+    protocol        = "tcp"
+    security_groups = [module.eks.node_security_group_id] # <-- Make sure this is exposed from the EKS module
+  }
+
+  ingress {
+    description = "Kubelet port (10250) from worker nodes"
+    from_port       = 10250
+    to_port         = 10250
+    protocol        = "tcp"
+    security_groups = [module.eks.node_security_group_id]
+  }
+
+  # Optional: DNS access if needed
+  ingress {
+    description = "CoreDNS UDP from worker nodes"
+    from_port       = 53
+    to_port         = 53
+    protocol        = "udp"
+    security_groups = [module.eks.node_security_group_id]
+  }
+
+  # Outbound: Allow all
+  egress {
+    description = "Allow all outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   tags = { Name = "aws-terraform-explore" }
 }
 
 # Security group for eks cluster
-resource "aws_security_group" "eks_cluster_sg" {
-  name_prefix = "${var.environment.name}-eks-cluster"
-  description = "EKS cluster primary security group."
-  vpc_id      = module.vpc.vpc_id
+#resource "aws_security_group" "eks_cluster_sg" {
+#  name_prefix = "${var.environment.name}-eks-cluster"
+#  description = "EKS cluster primary security group."
+#  vpc_id      = module.vpc.vpc_id
 
-  tags = {
-    Name   = "${var.environment.name}-eks-cluster"
-  }
-}
+#  tags = {
+#    Name   = "${var.environment.name}-eks-cluster"
+#  }
+#}
 
 #resource "null_resource" "wait_for_nodes" {
 #  depends_on = [module.eks.node_security_group_id]
@@ -115,37 +153,32 @@ resource "aws_ec2_tag" "eks_node_sg_owned_tag" {
   #depends_on = [module.eks.node_security_group_id]
   resource_id = data.aws_security_group.node_sg.id
   #resource_id = module.eks.node_security_group_id
-  #resource_id = module.eks.eks_managed_node_groups["default"].security_group_id
 
   key         = "kubernetes.io/cluster/${module.eks.cluster_name}"
   value       = "owned"
 }
 
 # Allows HTTP traffic from the ALB to the nodes
-resource "aws_security_group_rule" "allow_alb_http_to_nodes" {
-  description              = "Allow HTTP from ALB to EKS nodes"
-  type                     = "ingress"
-  from_port                = 80
-  to_port                  = 80
-  protocol                 = "tcp"
-  source_security_group_id = aws_security_group.eks_cluster_sg.id
-  security_group_id        = module.eks.node_security_group_id
-  #source_security_group_id = module.eks.cluster_primary_security_group_id
-  #security_group_id        = module.eks.node_security_group_id
-}
+#resource "aws_security_group_rule" "allow_alb_http_to_nodes" {
+#  description              = "Allow HTTP from ALB to EKS nodes"
+#  type                     = "ingress"
+#  from_port                = 80
+#  to_port                  = 80
+#  protocol                 = "tcp"
+#  source_security_group_id = aws_security_group.eks_cluster_sg.id
+#  security_group_id        = module.eks.node_security_group_id
+#}
 
 # Allows HTTPS traffic from the ALB to the nodes
-resource "aws_security_group_rule" "allow_alb_https_to_nodes" {
-  description              = "Allow HTTPS from ALB to EKS nodes"
-  type                     = "ingress"
-  from_port                = 443
-  to_port                  = 443
-  protocol                 = "tcp"
-  source_security_group_id = aws_security_group.eks_cluster_sg.id
-  security_group_id        = module.eks.node_security_group_id
-  #source_security_group_id = module.eks.cluster_primary_security_group_id
-  #security_group_id        = module.eks.node_security_group_id
-}
+#resource "aws_security_group_rule" "allow_alb_https_to_nodes" {
+#  description              = "Allow HTTPS from ALB to EKS nodes"
+#  type                     = "ingress"
+#  from_port                = 443
+#  to_port                  = 443
+#  protocol                 = "tcp"
+#  source_security_group_id = aws_security_group.eks_cluster_sg.id
+#  security_group_id        = module.eks.node_security_group_id
+#}
 #--------------------------------------------------------------------------------
 # aws username that link with terraform
 data "aws_iam_user" "terraform_user" {
@@ -266,8 +299,9 @@ module "eks" {
   cluster_name    = "${var.environment.name}-eks-cluster"
   cluster_version = var.cluster_version
   cluster_endpoint_public_access = true
-  #cluster_create_security_group = false
-  cluster_security_group_id = aws_security_group.eks_cluster_sg.id
+  #cluster_security_group_id = aws_security_group.eks_cluster_sg.id
+  cluster_security_group_id    = aws_security_group.additional.id
+  create_cluster_security_group = false
   #depends_on = [aws_security_group.eks_cluster_sg]
 
   access_entries = {
@@ -340,6 +374,7 @@ module "eks" {
       source_security_group_id = aws_security_group.additional.id
     }
   }
+
  # Extend node-to-node security group rules
   node_security_group_additional_rules = {
     ingress_self_all = {
