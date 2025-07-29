@@ -334,14 +334,14 @@ module "eks" {
       source_node_security_group = true
     }
 
-    allow_https = {
-      description              = "Allow HTTPS from ALB to EKS nodes"
-      protocol                 = "tcp"
-      from_port                = 443
-      to_port                  = 443
-      type                     = "ingress"
-      source_node_security_group = true
-    }
+#    allow_https = {
+#      description              = "Allow HTTPS from ALB to EKS nodes"
+#      protocol                 = "tcp"
+#      from_port                = 443
+#      to_port                  = 443
+#      type                     = "ingress"
+#      source_node_security_group = true
+#    }
 
     ssh_from_trusted_cidrs = {
     description  = "SSH access from internal & specific external IPs"
