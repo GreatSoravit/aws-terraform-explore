@@ -64,6 +64,22 @@ module "vpc" {
 #  }
 #}
 
+#resource "null_resource" "fix_cluster_sg_tag" {
+#  provisioner "local-exec" {
+#    command = <<EOT
+#      aws ec2 create-tags \
+#        --region ap-southeast-1 \
+#        --resources ${aws_security_group.eks_cluster_sg.id} \
+#        --tags Key="kubernetes.io/cluster/${var.environment.name}-eks-cluster",Value="shared"
+#    EOT
+#  }
+
+#  depends_on = [
+#    module.eks,                             # Ensures EKS cluster is complete
+#    module.eks.eks_managed_node_groups,     # If you have node groups as submodules
+#  ]
+#}
+
 #resource "null_resource" "wait_for_nodes" {
 #  depends_on = [module.eks.node_security_group_id]
 #}
@@ -73,25 +89,14 @@ data "aws_security_group" "node_sg" {
   depends_on = [module.eks.node_security_group_id]
   filter {
     name   = "tag:Name"
-    values = ["${var.environment.name}-eks-cluster-node"]
+    values = ["eks-cluster-sg-dev-eks-cluster-*"] # ["${var.environment.name}-eks-cluster-node"]
   }
-  vpc_id = module.vpc.vpc_id
-}
-
-#data "aws_security_groups" "eks_cluster_tag_sg" {
-#  depends_on = [null_resource.wait_for_nodes]
-
-#  filter {
-#    name   = "tag:Name"
-#    values = ["eks-cluster-sg-dev-eks-cluster-*"]
-#  }
-
-# filter {
+  filter {
 #    name   = "tag:aws:eks:cluster-name"
 #    values = ["dev-eks-cluster"]
 #  }
-#  vpc_id = module.vpc.vpc_id
-#}
+  vpc_id = module.vpc.vpc_id
+}
 
 #variable "remove_owned_tag" {
 #  type    = bool
@@ -103,12 +108,12 @@ data "aws_security_group" "node_sg" {
 
 #  for_each = toset(data.aws_security_groups.eks_cluster_tag_sg.ids)
 #  resource_id = each.value
-  #resource_id = data.aws_security_group.eks_cluster_tag_sg.id
+  resource_id = data.aws_security_group.node_sg.id
   #key         = "kubernetes.io/cluster/${data.aws_security_group.eks_cluster_tag_sg.tags["aws:eks:cluster-name"]}"
-#  key         = "kubernetes.io/cluster/${module.eks.cluster_name}"
-#  value       = ""  # Can also be "null", AWS treats both as effectively unsetting
+  key         = "kubernetes.io/cluster/${module.eks.cluster_name}"
+  value       = ""  # Can also be "null", AWS treats both as effectively unsetting
 
-#  depends_on = [null_resource.wait_for_nodes]
+  depends_on = [aws_security_group.node_sg]
 #}
 
 #resource "aws_ec2_tag" "eks_node_sg_owned_tag" {
