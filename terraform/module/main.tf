@@ -103,7 +103,7 @@ data "aws_security_group" "node_sg" {
 #  default = true  # Set to true to remove the tag
 #}
 
-#resource "aws_ec2_tag" "remove_owned_tag_from_cluster_sg" {
+resource "aws_ec2_tag" "remove_owned_tag_from_cluster_sg" {
   #count = var.remove_owned_tag ? 1 : 0
 
 #  for_each = toset(data.aws_security_groups.eks_cluster_tag_sg.ids)
@@ -114,7 +114,7 @@ data "aws_security_group" "node_sg" {
   value       = ""  # Can also be "null", AWS treats both as effectively unsetting
 
   #depends_on = [aws_security_group.node_sg]
-#}
+}
 
 #resource "aws_ec2_tag" "eks_node_sg_owned_tag" {
   #depends_on = [module.eks.node_security_group_id]
