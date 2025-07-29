@@ -33,7 +33,7 @@ module "vpc" {
     "kubernetes.io/role/internal-elb"        = "1"
   }
 }
-
+#-----------------------------------SG-----------------------------------------
 # additional security group to access following IP
 #resource "aws_security_group" "additional" {
 #  name_prefix = "aws-terraform-explore-additional"
@@ -54,15 +54,15 @@ module "vpc" {
 #}
 
 # Security group for eks cluster
-resource "aws_security_group" "eks_cluster_sg" {
-  name_prefix = "${var.environment.name}-eks-cluster"
-  description = "EKS cluster primary security group."
-  vpc_id      = module.vpc.vpc_id
+#resource "aws_security_group" "eks_cluster_sg" {
+#  name_prefix = "${var.environment.name}-eks-cluster"
+#  description = "EKS cluster primary security group."
+#  vpc_id      = module.vpc.vpc_id
 
-  tags = {
-    Name   = "${var.environment.name}-eks-cluster"
-  }
-}
+#  tags = {
+#    Name   = "${var.environment.name}-eks-cluster"
+#  }
+#}
 
 #resource "null_resource" "wait_for_nodes" {
 #  depends_on = [module.eks.node_security_group_id]
@@ -122,17 +122,17 @@ data "aws_security_group" "node_sg" {
 #}
 
 # Allows HTTP traffic from the ALB to the nodes
-resource "aws_security_group_rule" "allow_alb_http_to_nodes" {
-  description              = "Allow HTTP from ALB to EKS nodes"
-  type                     = "ingress"
-  from_port                = 80
-  to_port                  = 80
-  protocol                 = "tcp"
-  source_security_group_id = aws_security_group.eks_cluster_sg.id
-  security_group_id        = module.eks.node_security_group_id
-  #source_security_group_id = module.eks.cluster_primary_security_group_id
-  #security_group_id        = module.eks.node_security_group_id
-}
+#resource "aws_security_group_rule" "allow_alb_http_to_nodes" {
+#  description              = "Allow HTTP from ALB to EKS nodes"
+#  type                     = "ingress"
+#  from_port                = 80
+#  to_port                  = 80
+#  protocol                 = "tcp"
+#  #source_security_group_id = aws_security_group.eks_cluster_sg.id
+#  #security_group_id        = module.eks.node_security_group_id
+#  source_security_group_id = module.eks.cluster_primary_security_group_id
+#  security_group_id        = module.eks.node_security_group_id
+#}
 
 # Allows HTTPS traffic from the ALB to the nodes
 #resource "aws_security_group_rule" "allow_alb_https_to_nodes" {
@@ -193,9 +193,6 @@ resource "aws_iam_role_policy_attachment" "aws_load_balancer_controller" {
   role       = aws_iam_role.aws_load_balancer_controller.name
   policy_arn = aws_iam_policy.lb_controller_policy.arn
 }
-
-#--------------------------------------------------------------------------------
-
 #--------------------------------------------------------------------------------
 # key pair generate in local machine then upload to aws attach to instance
 resource "aws_key_pair" "eks_node_key" {
@@ -267,9 +264,9 @@ module "eks" {
   cluster_version = var.cluster_version
   cluster_endpoint_public_access = true
 
-  create_cluster_security_group = false
-  cluster_security_group_id = aws_security_group.eks_cluster_sg.id
-  depends_on = [aws_security_group.eks_cluster_sg]
+  #create_cluster_security_group = false
+  #cluster_security_group_id = aws_security_group.eks_cluster_sg.id
+  #depends_on = [aws_security_group.eks_cluster_sg]
 
   access_entries = {
     # A descriptive name for the access entry
@@ -328,6 +325,24 @@ module "eks" {
       source_node_security_group = true
     }
 
+    allow_http = {
+      description              = "Allow HTTP from ALB to EKS nodes"
+      protocol                 = "tcp"
+      from_port                = 80
+      to_port                  = 80
+      type                     = "ingress"
+      source_node_security_group = true
+    }
+
+    allow_https = {
+      description              = "Allow HTTPS from ALB to EKS nodes"
+      protocol                 = "tcp"
+      from_port                = 443
+      to_port                  = 443
+      type                     = "ingress"
+      source_node_security_group = true
+    }
+
     ssh_from_trusted_cidrs = {
     description  = "SSH access from internal & specific external IPs"
     protocol     = "tcp"
@@ -378,7 +393,7 @@ module "eks" {
     ami_type       = "AL2_x86_64"
     instance_types = [var.instance_type]
 
-    attach_cluster_primary_security_group = false
+    attach_cluster_primary_security_group = true
     # set when need to custom security group for node
     # vpc_security_group_ids                = [aws_security_group.additional.id] 
     iam_role_additional_policies = {
@@ -412,31 +427,31 @@ module "eks" {
 }
 #--------------------------------------------------------------------------------
 # Data source to get your current IP address
-data "http" "my_ip" {
-  url = "http://ipv4.icanhazip.com"
-}
+#data "http" "my_ip" {
+#  url = "http://ipv4.icanhazip.com"
+#}
 # Creates a new security group
-resource "aws_security_group" "ssh_access_sg" {
-  name        = "ssh-from-my-ip"
-  description = "Allow SSH inbound traffic from my IP"
-  vpc_id      = module.vpc.vpc_id # Associates it with your VPC
+#resource "aws_security_group" "ssh_access_sg" {
+#  name        = "ssh-from-my-ip"
+#  description = "Allow SSH inbound traffic from my IP"
+#  vpc_id      = module.vpc.vpc_id # Associates it with your VPC
 
   # Rule allowing incoming SSH traffic from your IP
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["${chomp(data.http.my_ip.response_body)}/32"]
-  }
+ # ingress {
+ #   from_port   = 22
+ #   to_port     = 22
+ #   protocol    = "tcp"
+ #   cidr_blocks = ["${chomp(data.http.my_ip.response_body)}/32"]
+ # }
 
   # Allows all outbound traffic (common practice)
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
+#  egress {
+#    from_port   = 0
+#    to_port     = 0
+#    protocol    = "-1"
+#    cidr_blocks = ["0.0.0.0/0"]
+#  }
+#}
 #--------------------------------------------------------------------------------
 # This section defines 2-node EC2 instance group.
 #resource "aws_eks_node_group" "general_purpose" {
