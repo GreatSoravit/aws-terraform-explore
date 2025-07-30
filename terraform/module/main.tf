@@ -13,7 +13,7 @@ module "vpc" {
 
   azs             = ["${data.aws_region.current.name}a", "${data.aws_region.current.name}b"]
   private_subnets = ["${var.environment.network_prefix}.1.0/24", "${var.environment.network_prefix}.2.0/24"]
-  public_subnets  = ["${var.environment.network_prefix}.101.0/24", "${var.environment.network_prefix}102.0/24"]
+  public_subnets  = ["${var.environment.network_prefix}.101.0/24", "${var.environment.network_prefix}.102.0/24"]
 
   # set public IP to connect with Internet
   map_public_ip_on_launch = true
@@ -358,7 +358,7 @@ locals {
       to_port     = 22
       type        = "ingress"
       cidr_blocks = [
-        "${var.environment.network_prefix}.0.0/8",
+        "${var.environment.network_prefix}.0.0/16",
         "172.16.0.0/12",
         "192.168.0.0/16",
         "49.228.99.81/32"
@@ -402,7 +402,7 @@ locals {
       to_port     = 22
       type        = "ingress"
       cidr_blocks = [
-        "${var.environment.network_prefix}.0.0/8",
+        "${var.environment.network_prefix}.0.0/16",
         "172.16.0.0/12",
         "192.168.0.0/16",
         "49.228.99.81/32"
