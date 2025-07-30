@@ -119,7 +119,7 @@ module "vpc" {
 #--------------------------------------------------------------------------------
 # aws username that link with terraform
 data "aws_iam_user" "terraform_user" {
-  user_name = "${var.environment.name}-user-aws-terraform-explore"
+  user_name = "user-aws-terraform-explore"
 }
 
 data "aws_iam_policy" "additional" {
@@ -370,7 +370,7 @@ locals {
       protocol                   = ""
       from_port                  = 0
       to_port                    = 0
-      type                       = ""
+      type                       = "ingress"
       source_node_security_group = false
       cidr_blocks                = []
     }
