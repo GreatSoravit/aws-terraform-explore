@@ -36,9 +36,3 @@ variable "cluster_version" {
   type        = string
   default     = "1.32"
 }
-
-variable "cluster_security_group_id" {
-  description = "An existing security group ID to use for the EKS cluster. If not provided, the module will create one."
-  type        = string
-  default     = null
-}
