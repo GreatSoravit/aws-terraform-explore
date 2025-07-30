@@ -313,17 +313,18 @@ module "eks" {
       from_port                  = 1025
       to_port                    = 65535
       type                       = "ingress"
-      source_node_security_group = true
+      cidr_blocks = ["10.0.0.0/16"]
+      #source_node_security_group = true
     }
 
-    allow_http = {
-      description              = "Allow HTTP from ALB to EKS nodes"
-      protocol                 = "tcp"
-      from_port                = 80
-      to_port                  = 80
-      type                     = "ingress"
-      source_node_security_group = true
-    }
+#    allow_http = {
+#      description              = "Allow HTTP from ALB to EKS nodes"
+#      protocol                 = "tcp"
+#      from_port                = 80
+#      to_port                  = 80
+#      type                     = "ingress"
+      #source_node_security_group = true
+#    }
 
 #    allow_https = {
 #      description              = "Allow HTTPS from ALB to EKS nodes"
