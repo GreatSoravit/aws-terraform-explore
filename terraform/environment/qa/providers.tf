@@ -16,5 +16,5 @@ terraform {
 }
 
 provider "aws" {
-  region = "ap-southeast-7" # Thailand
+  region = "ap-southeast-7" # Thailand Region
 }
