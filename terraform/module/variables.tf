@@ -10,21 +10,6 @@ variable "environment" {
   }
 }
 
-variable "enable_node_sg" {
-  description = "Enable node security group"
-  type        = bool
-}
-
-variable "create_node_security_group" {
-  description = "Create dedicated node security group"
-  type        = bool
-}
-
-variable "attach_cluster_primary_security_group" {
-  description = "Attach cluster primary security group"
-  type        = bool
-}
-
 variable "instance_type" {
   description = "Type of EC2 instance to provision"
   default     = "t3.small"
