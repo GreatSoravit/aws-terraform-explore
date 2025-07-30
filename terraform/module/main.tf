@@ -340,49 +340,53 @@ module "eks" {
 #----------------------------------locals---------------------------------------------
 locals {
   # Base cluster SG rules when node SG is disabled
-  cluster_sg_common_rules = {
-    ingress_nodes_ephemeral_ports_tcp = {
+  ingress_nodes_ephemeral_ports_tcp = merge(
+    {
       description = "Nodes on ephemeral ports"
       protocol    = "tcp"
       from_port   = 1025
       to_port     = 65535
       type        = "ingress"
-
-      # Conditionally assign only one of the two
-      %{if var.enable_node_sg}
+    },
+    var.enable_node_sg ? {
       source_node_security_group = true
-      %{else}
+    } : {
       cidr_blocks = ["10.0.0.0/16"]
-      %{endif}
     }
+  )
 
-    ssh_from_trusted_cidrs = {
-      description = "SSH access from internal & specific external IPs"
-      protocol    = "tcp"
-      from_port   = 22
-      to_port     = 22
-      type        = "ingress"
-      cidr_blocks = [
-        "10.0.0.0/8",
-        "172.16.0.0/12",
-        "192.168.0.0/16",
-        "49.228.99.81/32"
-      ]
-    }
-
-    %{if var.enable_node_sg}
-    allow_http = {
-      description                = "Allow HTTP from ALB to EKS nodes"
-      protocol                   = "tcp"
-      from_port                  = 80
-      to_port                    = 80
-      type                       = "ingress"
-      source_node_security_group = true
-    }
-    %{endif}
+  allow_http = {
+    description                = "Allow HTTP from ALB to EKS nodes"
+    protocol                   = "tcp"
+    from_port                  = 80
+    to_port                    = 80
+    type                       = "ingress"
+    source_node_security_group = true
   }
 
-  cluster_security_group_additional_rules = local.cluster_sg_common_rules
+  ssh_from_trusted_cidrs = {
+    description = "SSH access from internal & specific external IPs"
+    protocol    = "tcp"
+    from_port   = 22
+    to_port     = 22
+    type        = "ingress"
+    cidr_blocks = [
+      "10.0.0.0/8",
+      "172.16.0.0/12",
+      "192.168.0.0/16",
+      "49.228.99.81/32"
+    ]
+  }
+
+  cluster_security_group_additional_rules = merge(
+    {
+      ingress_nodes_ephemeral_ports_tcp = local.ingress_nodes_ephemeral_ports_tcp
+      ssh_from_trusted_cidrs            = local.ssh_from_trusted_cidrs
+    },
+    var.enable_node_sg ? {
+      allow_http = local.allow_http
+    } : {}
+  )
 
   node_security_group_rules = {
     ingress_self_all = {
