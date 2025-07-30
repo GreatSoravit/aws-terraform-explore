@@ -384,6 +384,7 @@ locals {
       to_port                    = 65535
       type                       = "ingress"
       source_node_security_group = true
+      cidr_blocks                = []
     }
 
     ssh_from_trusted_cidrs = {
@@ -407,6 +408,7 @@ locals {
       to_port                    = 80
       type                       = "ingress"
       source_node_security_group = true
+      cidr_blocks                = []
     }
   }
 
