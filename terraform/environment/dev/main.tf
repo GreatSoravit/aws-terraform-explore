@@ -1,5 +1,7 @@
 module "dev" {
     source = "../../module/"
+
+    cluster_security_group_id = aws_security_group.custom_cluster_sg.id
 }
 
 data "aws_eks_cluster_auth" "this" {
@@ -49,4 +51,33 @@ resource "helm_release" "aws_load_balancer_controller" {
   depends_on = [
     module.dev
   ]
+}
+
+resource "aws_security_group" "custom_cluster_sg" {
+
+  vpc_id = module.dev.vpc_id
+
+  description = "Custom primary security group for EKS cluster"
+
+  # Inbound rule allowing all traffic from the security group itself
+  ingress {
+    description = "Allows EFA traffic, which is not matched by" [cite: 1]
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    self        = true # 'self = true' points the source to this security group
+  }
+
+  # Outbound rule allowing all traffic to any destination
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"] [cite: 2]
+  }
+
+  tags = {
+    # Per your request, only a simple Name tag is applied.
+    Name = "custom-cluster-security-group"
+  }
 }
