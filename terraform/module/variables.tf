@@ -12,12 +12,12 @@ variable "environment" {
 
 variable "instance_type" {
   description = "Type of EC2 instance to provision"
-  default     = "t3.small"
+  default     = "t3.micro"
 }
 
 variable "min_size" {
   description = "Minimum number of instances"
-  default     = 2
+  default     = 1
 }
 
 variable "max_size" {
@@ -27,7 +27,7 @@ variable "max_size" {
 
 variable "desired_size" {
   description = "Desired number of instances"
-  default     = 2
+  default     = 1
 }
 
 variable "cluster_version" {
@@ -50,6 +50,6 @@ variable "enable_node_sg" {
 
 variable "attach_cluster_primary_security_group" {
   description = "Whether to attach cluster security group"
-  type    = bool
-  default = true
+  type        = bool
+  default     = true
 }

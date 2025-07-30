@@ -9,11 +9,11 @@ module "vpc" {
   version = "~> 5.0"
 
   name = "${var.environment.name}-eks-project-vpc"
-  cidr = "10.0.0.0/16"
+  cidr = "${var.environment.network_prefix}.0.0/16"
 
   azs             = ["${data.aws_region.current.name}a", "${data.aws_region.current.name}b"]
-  private_subnets = ["10.0.1.0/24", "10.0.2.0/24"]
-  public_subnets  = ["10.0.101.0/24", "10.0.102.0/24"]
+  private_subnets = ["${var.environment.network_prefix}.1.0/24", "${var.environment.network_prefix}.2.0/24"]
+  public_subnets  = ["${var.environment.network_prefix}.101.0/24", "${var.environment.network_prefix}102.0/24"]
 
   # set public IP to connect with Internet
   map_public_ip_on_launch = true
@@ -347,7 +347,7 @@ locals {
       from_port   = 1025
       to_port     = 65535
       type        = "ingress"
-      cidr_blocks = var.enable_node_sg ? null : ["10.0.0.0/16"]
+      cidr_blocks = var.enable_node_sg ? null : ["${var.environment.network_prefix}.0.0/16"]
       source_node_security_group = var.enable_node_sg ? true : null
     }
 
@@ -358,7 +358,7 @@ locals {
       to_port     = 22
       type        = "ingress"
       cidr_blocks = [
-        "10.0.0.0/8",
+        "${var.environment.network_prefix}.0.0/8",
         "172.16.0.0/12",
         "192.168.0.0/16",
         "49.228.99.81/32"
@@ -374,7 +374,7 @@ locals {
       from_port                  = 80
       to_port                    = 80
       type                       = "ingress"
-      cidr_blocks = var.enable_node_sg ? null : ["10.0.0.0/16"]
+      cidr_blocks = var.enable_node_sg ? null : ["${var.environment.network_prefix}.0.0/16"]
       source_node_security_group = var.enable_node_sg ? true : null
     }
   } : {}
@@ -402,7 +402,7 @@ locals {
       to_port     = 22
       type        = "ingress"
       cidr_blocks = [
-        "10.0.0.0/8",
+        "${var.environment.network_prefix}.0.0/8",
         "172.16.0.0/12",
         "192.168.0.0/16",
         "49.228.99.81/32"
