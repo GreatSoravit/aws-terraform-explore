@@ -37,13 +37,20 @@ variable "cluster_version" {
   default     = "1.32"
 }
 
-variable "enable_node_sg" {
+variable "create_node_security_group" {
   description = "Whether to create a separate node security group"
   type        = bool
   default     = false
 }
 
+variable "enable_node_sg" {
+  description = "Whether to enable node security group"
+  type        = bool
+  default     = false
+}
+
 variable "attach_cluster_primary_security_group" {
+  description = "Whether to attach cluster security group"
   type    = bool
   default = true
 }

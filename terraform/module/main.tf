@@ -152,7 +152,7 @@ resource "aws_iam_role" "aws_load_balancer_controller" {
 
 # Use IAM policy json file to create policy
 resource "aws_iam_policy" "lb_controller_policy" {
-  name        = "AWSLoadBalancerControllerIAMPolicy-{var.environment.name}"
+  name        = "AWSLoadBalancerControllerIAMPolicy_{var.environment.name}"
   path        = "/"
   description = "Policy for AWS Load Balancer Controller in {var.environment.name} environment"
   policy      = file("${path.module}/IAM/aws_load_balancer_controller_iam_policy.json")  # path to downloaded file
@@ -287,62 +287,7 @@ module "eks" {
   control_plane_subnet_ids = module.vpc.intra_subnets
 
   # Extend cluster security group rules
-
-  cluster_security_group_additional_rules = var.enable_node_sg ? {
-    ingress_nodes_ephemeral_ports_tcp = {
-      description                = "Nodes on ephemeral ports"
-      protocol                   = "tcp"
-      from_port                  = 1025
-      to_port                    = 65535
-      type                       = "ingress"
-      source_node_security_group = true
-    }
-
-    ssh_from_trusted_cidrs = {
-      description                = "SSH access from internal & specific external IPs"
-      protocol                   = "tcp"
-      from_port                  = 22
-      to_port                    = 22
-      type                       = "ingress"
-      cidr_blocks                = [
-        "10.0.0.0/8",
-        "172.16.0.0/12",
-        "192.168.0.0/16",
-        "49.228.99.81/32"
-      ]
-    }
-    allow_http = {
-      description                = "Allow HTTP from ALB to EKS nodes"
-      protocol                   = "tcp"
-      from_port                  = 80
-      to_port                    = 80
-      type                       = "ingress"
-      source_node_security_group = true
-    }
-  } : {
-    # When node_sg disabled add sg without allow_http
-    ingress_nodes_ephemeral_ports_tcp = {
-      description                = "Nodes on ephemeral ports"
-      protocol                   = "tcp"
-      from_port                  = 1025
-      to_port                    = 65535
-      type                       = "ingress"
-      cidr_blocks                = ["10.0.0.0/16"]
-    }
-    ssh_from_trusted_cidrs = {
-      description                = "SSH access from internal & specific external IPs"
-      protocol                   = "tcp"
-      from_port                  = 22
-      to_port                    = 22
-      type                       = "ingress"
-      cidr_blocks                = [
-        "10.0.0.0/8",
-        "172.16.0.0/12",
-        "192.168.0.0/16",
-        "49.228.99.81/32"
-      ]
-    }
-  }
+  cluster_security_group_additional_rules = local.cluster_security_group_additional_rules
 
 #    allow_https = {
 #      description              = "Allow HTTPS from ALB to EKS nodes"
@@ -360,31 +305,8 @@ module "eks" {
   node_security_group_tags = var.enable_node_sg ? { 
     "kubernetes.io/cluster/${var.environment.name}-eks-cluster" = null } : {}
 
-  # Extend node-to-node security group rules
-  node_security_group_additional_rules = var.enable_node_sg ? {
-    ingress_self_all = {
-      description = "Node to node all ports/protocols"
-      protocol    = "-1"
-      from_port   = 0
-      to_port     = 0
-      type        = "ingress"
-      self        = true
-    }
-
-    ssh_from_trusted_cidrs = {
-      description  = "SSH access from internal & specific external IPs"
-      protocol     = "tcp"
-      from_port    = 22
-      to_port      = 22
-      type         = "ingress"
-      cidr_blocks  = [
-        "10.0.0.0/8",
-        "172.16.0.0/12",
-        "192.168.0.0/16",
-        "49.228.99.81/32"
-      ]
-    }
-  } : {}
+  # Extend node-to-node security group only outside dev environment
+  node_security_group_additional_rules = var.create_node_security_group ? local.node_security_group_rules : null
 
   # EKS Managed Node Group(s)
   eks_managed_node_group_defaults = {
@@ -412,6 +334,96 @@ module "eks" {
       update_config = {
         max_unavailable_percentage = 33
       }
+    }
+  }
+}
+#----------------------------------locals---------------------------------------------
+locals {
+  # Base cluster SG rules when node SG is disabled
+  cluster_sg_base_rules = {
+    ingress_nodes_ephemeral_ports_tcp = {
+      description = "Nodes on ephemeral ports"
+      protocol    = "tcp"
+      from_port   = 1025
+      to_port     = 65535
+      type        = "ingress"
+      cidr_blocks = ["10.0.0.0/16"]
+    }
+
+    ssh_from_trusted_cidrs = {
+      description = "SSH access from internal & specific external IPs"
+      protocol    = "tcp"
+      from_port   = 22
+      to_port     = 22
+      type        = "ingress"
+      cidr_blocks = [
+        "10.0.0.0/8",
+        "172.16.0.0/12",
+        "192.168.0.0/16",
+        "49.228.99.81/32"
+      ]
+    }
+  }
+
+  # Additional cluster SG rules when node SG is enabled
+  cluster_sg_node_enabled_rules = {
+    ingress_nodes_ephemeral_ports_tcp = {
+      description                = "Nodes on ephemeral ports"
+      protocol                   = "tcp"
+      from_port                  = 1025
+      to_port                    = 65535
+      type                       = "ingress"
+      source_node_security_group = true
+    }
+
+    ssh_from_trusted_cidrs = {
+      description = "SSH access from internal & specific external IPs"
+      protocol    = "tcp"
+      from_port   = 22
+      to_port     = 22
+      type        = "ingress"
+      cidr_blocks = [
+        "10.0.0.0/8",
+        "172.16.0.0/12",
+        "192.168.0.0/16",
+        "49.228.99.81/32"
+      ]
+    }
+
+    allow_http = {
+      description                = "Allow HTTP from ALB to EKS nodes"
+      protocol                   = "tcp"
+      from_port                  = 80
+      to_port                    = 80
+      type                       = "ingress"
+      source_node_security_group = true
+    }
+  }
+
+  cluster_security_group_additional_rules = var.enable_node_sg ? local.cluster_sg_node_enabled_rules : local.cluster_sg_base_rules
+
+  node_security_group_rules = {
+    ingress_self_all = {
+      description = "Node to node all ports/protocols"
+      protocol    = "-1"
+      from_port   = 0
+      to_port     = 0
+      type        = "ingress"
+      self        = true
+    }
+
+    ssh_from_trusted_cidrs = {
+      description = "SSH access from internal & specific external IPs"
+      protocol    = "tcp"
+      from_port   = 22
+      to_port     = 22
+      type        = "ingress"
+      cidr_blocks = [
+        "10.0.0.0/8",
+        "172.16.0.0/12",
+        "192.168.0.0/16",
+        "49.228.99.81/32"
+      ]
     }
   }
 }
