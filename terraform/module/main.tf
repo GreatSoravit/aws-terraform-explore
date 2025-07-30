@@ -399,12 +399,6 @@ locals {
     }
   }
 
-  # Final rules: merged
-  cluster_security_group_additional_rules = merge(
-    local.cluster_sg_common_rules,
-    local.cluster_sg_http_rule
-  )
-
   cluster_security_group_additional_rules = var.enable_node_sg ? local.qa_cluster_sg_common_rules : local.dev_cluster_sg_common_rules
 
   node_security_group_rules = {
