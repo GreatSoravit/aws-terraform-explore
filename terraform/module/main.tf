@@ -340,15 +340,15 @@ module "eks" {
 #----------------------------------locals---------------------------------------------
 locals {
   # Base cluster SG rules when node SG is disabled
-  cluster_sg_base_rules = {
+  cluster_sg_common_rules = {
     ingress_nodes_ephemeral_ports_tcp = {
       description = "Nodes on ephemeral ports"
       protocol    = "tcp"
       from_port   = 1025
       to_port     = 65535
       type        = "ingress"
-      cidr_blocks = ["10.0.0.0/16"]
-      source_node_security_group = false
+      cidr_blocks = var.enable_node_sg ? [] : ["10.0.0.0/16"]
+      source_node_security_group = var.enable_node_sg ? true : false
     }
 
     ssh_from_trusted_cidrs = {
@@ -363,45 +363,11 @@ locals {
         "192.168.0.0/16",
         "49.228.99.81/32"
       ]
-    }
-
-    allow_http = {
-      description                = ""
-      protocol                   = ""
-      from_port                  = 0
-      to_port                    = 0
-      type                       = "ingress"
-      source_node_security_group = false
-      cidr_blocks                = []
     }
   }
 
-  # Additional cluster SG rules when node SG is enabled
-  cluster_sg_node_enabled_rules = {
-    ingress_nodes_ephemeral_ports_tcp = {
-      description                = "Nodes on ephemeral ports"
-      protocol                   = "tcp"
-      from_port                  = 1025
-      to_port                    = 65535
-      type                       = "ingress"
-      source_node_security_group = true
-      cidr_blocks                = []
-    }
-
-    ssh_from_trusted_cidrs = {
-      description = "SSH access from internal & specific external IPs"
-      protocol    = "tcp"
-      from_port   = 22
-      to_port     = 22
-      type        = "ingress"
-      cidr_blocks = [
-        "10.0.0.0/8",
-        "172.16.0.0/12",
-        "192.168.0.0/16",
-        "49.228.99.81/32"
-      ]
-    }
-
+  # Only include allow_http if node SG is enabled
+  cluster_sg_http_rule = var.enable_node_sg ? {
     allow_http = {
       description                = "Allow HTTP from ALB to EKS nodes"
       protocol                   = "tcp"
@@ -411,9 +377,13 @@ locals {
       source_node_security_group = true
       cidr_blocks                = []
     }
-  }
+  } : {}
 
-  cluster_security_group_additional_rules = var.enable_node_sg ? local.cluster_sg_node_enabled_rules : local.cluster_sg_base_rules
+  # Final rules: merged
+  cluster_security_group_additional_rules = merge(
+    local.cluster_sg_common_rules,
+    local.cluster_sg_http_rule
+  )
 
   node_security_group_rules = {
     ingress_self_all = {
