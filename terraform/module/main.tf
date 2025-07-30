@@ -253,9 +253,10 @@ module "eks" {
   cluster_version = var.cluster_version
   cluster_endpoint_public_access = true
 
-  create_cluster_primary_security_group_tags = false
+  #create_cluster_primary_security_group_tags = false
   #create_cluster_security_group = false
   #cluster_security_group_id = aws_security_group.eks_cluster_sg.id
+  cluster_security_group_id = var.cluster_security_group_id
   #depends_on = [aws_security_group.eks_cluster_sg]
 
   access_entries = {

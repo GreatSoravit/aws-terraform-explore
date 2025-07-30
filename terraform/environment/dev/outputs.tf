@@ -29,6 +29,6 @@ output "configure_kubectl" {
   value = module.dev.configure_kubectl
 }
 
-#output "matched_sg_id" {
-#  value = module.dev.matched_sg_id
-#}
+output "eks_cluster_security_group_id" {
+  value = module.dev.eks_cluster_security_group_id
+}
