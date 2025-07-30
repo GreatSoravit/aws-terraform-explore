@@ -61,11 +61,11 @@ resource "aws_security_group" "custom_cluster_sg" {
 
   # Inbound rule allowing all traffic from the security group itself
   ingress {
-    description = "Allows EFA traffic, which is not matched by" [cite: 1]
+    description = "Allows EFA traffic"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    self        = true # 'self = true' points the source to this security group
+    self        = true 
   }
 
   # Outbound rule allowing all traffic to any destination
