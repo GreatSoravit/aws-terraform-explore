@@ -340,52 +340,49 @@ module "eks" {
 #----------------------------------locals---------------------------------------------
 locals {
   # Base cluster SG rules when node SG is disabled
-  ingress_nodes_ephemeral_ports_tcp = merge(
-    {
+  cluster_sg_common_rules = {
+    ingress_nodes_ephemeral_ports_tcp = {
       description = "Nodes on ephemeral ports"
       protocol    = "tcp"
       from_port   = 1025
       to_port     = 65535
       type        = "ingress"
-    },
-    var.enable_node_sg ? {
-      source_node_security_group = true
-    } : {
-      cidr_blocks = ["10.0.0.0/16"]
+      cidr_blocks = var.enable_node_sg ? null : ["10.0.0.0/16"]
+      source_node_security_group = var.enable_node_sg ? true : null
     }
-  )
 
-  allow_http = {
-    description                = "Allow HTTP from ALB to EKS nodes"
-    protocol                   = "tcp"
-    from_port                  = 80
-    to_port                    = 80
-    type                       = "ingress"
-    source_node_security_group = true
+    ssh_from_trusted_cidrs = {
+      description = "SSH access from internal & specific external IPs"
+      protocol    = "tcp"
+      from_port   = 22
+      to_port     = 22
+      type        = "ingress"
+      cidr_blocks = [
+        "10.0.0.0/8",
+        "172.16.0.0/12",
+        "192.168.0.0/16",
+        "49.228.99.81/32"
+      ]
+    }
   }
 
-  ssh_from_trusted_cidrs = {
-    description = "SSH access from internal & specific external IPs"
-    protocol    = "tcp"
-    from_port   = 22
-    to_port     = 22
-    type        = "ingress"
-    cidr_blocks = [
-      "10.0.0.0/8",
-      "172.16.0.0/12",
-      "192.168.0.0/16",
-      "49.228.99.81/32"
-    ]
-  }
+  # Only include allow_http if node SG is enabled
+  cluster_sg_http_rule = var.enable_node_sg ? {
+    allow_http = {
+      description                = "Allow HTTP from ALB to EKS nodes"
+      protocol                   = "tcp"
+      from_port                  = 80
+      to_port                    = 80
+      type                       = "ingress"
+      cidr_blocks = var.enable_node_sg ? null : ["10.0.0.0/16"]
+      source_node_security_group = var.enable_node_sg ? true : null
+    }
+  } : {}
 
+  # Final rules: merged
   cluster_security_group_additional_rules = merge(
-    {
-      ingress_nodes_ephemeral_ports_tcp = local.ingress_nodes_ephemeral_ports_tcp
-      ssh_from_trusted_cidrs            = local.ssh_from_trusted_cidrs
-    },
-    var.enable_node_sg ? {
-      allow_http = local.allow_http
-    } : {}
+    local.cluster_sg_common_rules,
+    local.cluster_sg_http_rule
   )
 
   node_security_group_rules = {
