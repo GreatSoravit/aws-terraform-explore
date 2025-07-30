@@ -25,12 +25,12 @@ module "vpc" {
   # Tags required by Kubernetes for service discovery (e.g., for Load Balancers).
   public_subnet_tags = {
     "kubernetes.io/cluster/${var.environment.name}-eks-cluster" = "shared"
-    "kubernetes.io/role/elb"                 = "1"
+    "kubernetes.io/role/elb"                                    = "1"
   }
 
   private_subnet_tags = {
     "kubernetes.io/cluster/${var.environment.name}-eks-cluster" = "shared"
-    "kubernetes.io/role/internal-elb"        = "1"
+    "kubernetes.io/role/internal-elb"                           = "1"
   }
 }
 #-----------------------------------SG-----------------------------------------
@@ -256,7 +256,7 @@ module "eks" {
   #create_cluster_primary_security_group_tags = false
   #create_cluster_security_group = false
   #cluster_security_group_id = aws_security_group.eks_cluster_sg.id
-  cluster_security_group_id = var.cluster_security_group_id
+  #cluster_security_group_id = var.cluster_security_group_id
   #depends_on = [aws_security_group.eks_cluster_sg]
 
   access_entries = {
@@ -349,35 +349,35 @@ module "eks" {
     }
   }
 
-  create_node_security_group = true
+  create_node_security_group = false
   # set when need to create custom security group for node to tag
   #node_security_group_tags = { "kubernetes.io/cluster/${var.environment.name}-eks-cluster" = "owned" }
 
  # Extend node-to-node security group rules
-  node_security_group_additional_rules = {
-    ingress_self_all = {
-      description = "Node to node all ports/protocols"
-      protocol    = "-1"
-      from_port   = 0
-      to_port     = 0
-      type        = "ingress"
-      self        = true
-    }
+ # node_security_group_additional_rules = {
+ #   ingress_self_all = {
+ #     description = "Node to node all ports/protocols"
+ #     protocol    = "-1"
+ #     from_port   = 0
+ #     to_port     = 0
+ #     type        = "ingress"
+ #     self        = true
+ #   }
 
-    ssh_from_trusted_cidrs = {
-    description  = "SSH access from internal & specific external IPs"
-    protocol     = "tcp"
-    from_port    = 22
-    to_port      = 22
-    type         = "ingress"
-    cidr_blocks  = [
-      "10.0.0.0/8",
-      "172.16.0.0/12",
-      "192.168.0.0/16",
-      "49.228.99.81/32"
-    ]
-  }
-  }
+ #   ssh_from_trusted_cidrs = {
+ #   description  = "SSH access from internal & specific external IPs"
+ #   protocol     = "tcp"
+ #   from_port    = 22
+ #   to_port      = 22
+ #   type         = "ingress"
+ #   cidr_blocks  = [
+ #     "10.0.0.0/8",
+ #     "172.16.0.0/12",
+ #     "192.168.0.0/16",
+ #     "49.228.99.81/32"
+ #   ]
+ # }
+ # }
 
   # EKS Managed Node Group(s)
   eks_managed_node_group_defaults = {
