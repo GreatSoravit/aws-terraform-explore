@@ -364,7 +364,14 @@ locals {
       ]
     }
 
-    allow_http = null
+    allow_http = {
+      description                = ""
+      protocol                   = ""
+      from_port                  = 0
+      to_port                    = 0
+      type                       = ""
+      source_node_security_group = false
+    }
   }
 
   # Additional cluster SG rules when node SG is enabled
