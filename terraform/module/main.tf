@@ -8,7 +8,7 @@ module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "~> 5.0"
 
-  name = "{var.environment.name}-eks-project-vpc"
+  name = "${var.environment.name}-eks-project-vpc"
   cidr = "10.0.0.0/16"
 
   azs             = ["${data.aws_region.current.name}a", "${data.aws_region.current.name}b"]
@@ -119,7 +119,7 @@ module "vpc" {
 #--------------------------------------------------------------------------------
 # aws username that link with terraform
 data "aws_iam_user" "terraform_user" {
-  user_name = "{var.environment.name}-user-aws-terraform-explore"
+  user_name = "${var.environment.name}-user-aws-terraform-explore"
 }
 
 data "aws_iam_policy" "additional" {
@@ -128,7 +128,7 @@ data "aws_iam_policy" "additional" {
 
 # Creates the dedicated IAM role for the AWS Load Balancer Controller
 resource "aws_iam_role" "aws_load_balancer_controller" {
-  name = "EKS-ALB-Controller-Role-{var.environment.name}" # Use the same name you created in the console
+  name = "EKS-ALB-Controller-Role-${var.environment.name}" # Use the same name you created in the console
 
   assume_role_policy = jsonencode({
     Version   = "2012-10-17",
@@ -152,9 +152,9 @@ resource "aws_iam_role" "aws_load_balancer_controller" {
 
 # Use IAM policy json file to create policy
 resource "aws_iam_policy" "lb_controller_policy" {
-  name        = "AWSLoadBalancerControllerIAMPolicy_{var.environment.name}"
+  name        = "AWSLoadBalancerControllerIAMPolicy-${var.environment.name}"
   path        = "/"
-  description = "Policy for AWS Load Balancer Controller in {var.environment.name} environment"
+  description = "Policy for AWS Load Balancer Controller in ${var.environment.name} environment"
   policy      = file("${path.module}/IAM/aws_load_balancer_controller_iam_policy.json")  # path to downloaded file
 }
 
@@ -167,7 +167,7 @@ resource "aws_iam_role_policy_attachment" "aws_load_balancer_controller" {
 #--------------------------------------------------------------------------------
 # key pair generate in local machine then upload to aws attach to instance
 resource "aws_key_pair" "eks_node_key" {
-  key_name   = "{var.environment.name}-eks-node-key"
+  key_name   = "${var.environment.name}-eks-node-key"
   public_key = file("${path.module}/eks-node-key.pub")
 }
 
@@ -193,7 +193,7 @@ resource "aws_launch_template" "eks_nodes" {
   #]
 
   block_device_mappings {
-      device_name = "/{var.environment.name}/xvda"
+      device_name = "/${var.environment.name}/xvda"
       ebs {
         volume_size           = 8
         volume_type           = "gp3"
@@ -206,7 +206,7 @@ resource "aws_launch_template" "eks_nodes" {
   tag_specifications {
     resource_type = "instance"
     tags = {
-      Name = "{var.environment.name}-aws-terraform-explore"
+      Name = "${var.environment.name}-aws-terraform-explore"
     }
   }
 }
@@ -221,7 +221,7 @@ resource "aws_kms_key" "eks_secrets" {
 
 # Create an alias for the key to make it easier to reference
 resource "aws_kms_alias" "eks_secrets" {
-  name          = "alias/{var.environment.name}-eks-secrets-key"
+  name          = "alias/${var.environment.name}-eks-secrets-key"
   target_key_id = aws_kms_key.eks_secrets.key_id
 }
 
@@ -363,6 +363,8 @@ locals {
         "49.228.99.81/32"
       ]
     }
+
+    allow_http = null
   }
 
   # Additional cluster SG rules when node SG is enabled
