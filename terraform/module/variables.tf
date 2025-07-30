@@ -1,15 +1,28 @@
 variable "environment" {
   description = "Environment configuration (e.g., dev, qa, prod)"
-
   type = object({
     name           = string
     network_prefix = string
   })
-
   default = {
     name           = "dev"
     network_prefix = "10.0"
   }
+}
+
+variable "enable_node_sg" {
+  description = "Enable node security group"
+  type        = bool
+}
+
+variable "create_node_security_group" {
+  description = "Create dedicated node security group"
+  type        = bool
+}
+
+variable "attach_cluster_primary_security_group" {
+  description = "Attach cluster primary security group"
+  type        = bool
 }
 
 variable "instance_type" {
@@ -17,12 +30,6 @@ variable "instance_type" {
   default     = "t3.small"
 }
 
-variable "environment_name" {
-  description = "Development Environment"
-  type    = string
-  default = "dev"
-}
- 
 variable "min_size" {
   description = "Minimum number of instances"
   default     = 2
