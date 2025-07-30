@@ -87,14 +87,14 @@ module "vpc" {
 data "aws_security_group" "node_sg" {
   # EKS module to finish creating the node security group.
   depends_on = [module.eks.node_security_group_id]
-  filter {
-    name   = "tag:Name"
-    values = ["eks-cluster-sg-dev-eks-cluster-*"] # ["${var.environment.name}-eks-cluster-node"]
-  }
 #  filter {
-#    name   = "tag:aws:eks:cluster-name"
-#    values = ["dev-eks-cluster"]
+#    name   = "tag:Name"
+#    values = ["eks-cluster-sg-dev-eks-cluster-*"] # ["${var.environment.name}-eks-cluster-node"]
 #  }
+   filter {
+     name   = "tag:aws:eks:cluster-name"
+     values = ["dev-eks-cluster"]
+   }
   vpc_id = module.vpc.vpc_id
 }
 
