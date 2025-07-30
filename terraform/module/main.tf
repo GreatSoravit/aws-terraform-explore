@@ -372,6 +372,7 @@ locals {
       to_port                    = 0
       type                       = ""
       source_node_security_group = false
+      cidr_blocks                = []
     }
   }
 
