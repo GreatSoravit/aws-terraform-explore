@@ -1,19 +1,26 @@
-variable "instance_type" {
-  description = "Type of EC2 instance to provision"
-  default     = "t3.small"
-}
-
 variable "environment" {
-  description = "Development Environment"
+  description = "Environment configuration (e.g., dev, qa, prod)"
 
   type = object({
     name           = string
     network_prefix = string
   })
+
   default = {
-    name = "dev"
+    name           = "dev"
     network_prefix = "10.0"
   }
+}
+
+variable "instance_type" {
+  description = "Type of EC2 instance to provision"
+  default     = "t3.small"
+}
+
+variable "environment_name" {
+  description = "Development Environment"
+  type    = string
+  default = "dev"
 }
  
 variable "min_size" {
