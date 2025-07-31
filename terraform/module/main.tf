@@ -339,8 +339,7 @@ module "eks" {
 }
 #----------------------------------locals---------------------------------------------
 locals {
-  # Base cluster SG rules when node SG is disabled
-  
+    # Base cluster SG rules when node SG is disabled
     base_ephemeral_rule = {
       description = "Nodes on ephemeral ports"
       protocol    = "tcp"
@@ -364,15 +363,18 @@ locals {
         "49.228.99.81/32"
       ]
     }
-    cluster_sg_common_rules = {
-    # This builds the first rule dynamically in one step.
-    ingress_nodes_ephemeral_ports_tcp = merge(
-      local.base_ephemeral_rule,
-      var.enable_node_sg ? { source_node_security_group = true } : { cidr_blocks = ["${var.environment.network_prefix}.0.0/16"] }
-    )
 
-    ssh_from_trusted_cidrs = local.ssh_from_trusted_cidrs
+    rules_when_node_sg_is_true = {
+      ingress_nodes_ephemeral_ports_tcp = merge(local.base_ephemeral_rule, { source_node_security_group = true })
+      ssh_from_trusted_cidrs            = local.ssh_from_trusted_cidrs
     }
+
+    rules_when_node_sg_is_false = {
+      ingress_nodes_ephemeral_ports_tcp = merge(local.base_ephemeral_rule, { cidr_blocks = ["${var.environment.network_prefix}.0.0/16"] })
+      ssh_from_trusted_cidrs            = local.ssh_from_trusted_cidrs
+    }
+
+    cluster_sg_common_rules = var.enable_node_sg ? local.rules_when_node_sg_is_true : local.rules_when_node_sg_is_disabled
 
   # Only include allow_http if node SG is enabled
   cluster_sg_http_rule = var.enable_node_sg ? {
