@@ -184,7 +184,7 @@ data "aws_ami" "eks_worker" {
 # launch template for eks_node
 resource "aws_launch_template" "eks_nodes" {
   name_prefix   = "${var.environment.name}-eks-nodes"
-  image_id      = data.aws_ami.eks_worker.id
+  #image_id      = data.aws_ami.eks_worker.id
   instance_type = var.instance_type
   key_name      = aws_key_pair.eks_node_key.key_name 
 
