@@ -310,8 +310,8 @@ module "eks" {
 
   # EKS Managed Node Group(s)
   eks_managed_node_group_defaults = {
-    ami_type       = "AL2_x86_64"
-    instance_types = [var.instance_type]
+    #ami_type       = "AL2_x86_64"
+    #instance_types = [var.instance_type]
 
     attach_cluster_primary_security_group = var.attach_cluster_primary_security_group
     # set when need to custom security group for node
