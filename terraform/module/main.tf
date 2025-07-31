@@ -350,18 +350,7 @@ locals {
       #cidr_blocks = var.enable_node_sg ? null : ["${var.environment.network_prefix}.0.0/16"]
       #source_node_security_group = var.enable_node_sg ? true : null
     }
-    ephemeral_rule_source = var.enable_node_sg ? {
-      # This map is chosen when var.enable_node_sg is true
-      source_node_security_group = true
-      } : {
-      # This map is chosen when var.enable_node_sg is false
-      cidr_blocks = ["${var.environment.network_prefix}.0.0/16"]
-    }
-    ingress_nodes_ephemeral_ports_tcp = merge(
-        local.base_ephemeral_rule,
-        local.ephemeral_rule_source
-    )
-
+    
     ssh_from_trusted_cidrs = {
       description = "SSH access from internal & specific external IPs"
       protocol    = "tcp"
@@ -375,10 +364,14 @@ locals {
         "49.228.99.81/32"
       ]
     }
-
     cluster_sg_common_rules = {
-        ingress_nodes_ephemeral_ports_tcp = local.ingress_nodes_ephemeral_ports_tcp,
-        ssh_from_trusted_cidrs            = local.ssh_from_trusted_cidrs
+    # This builds the first rule dynamically in one step.
+    ingress_nodes_ephemeral_ports_tcp = merge(
+      local.base_ephemeral_rule,
+      var.enable_node_sg ? { source_node_security_group = true } : { cidr_blocks = ["${var.environment.network_prefix}.0.0/16"] }
+    )
+
+    ssh_from_trusted_cidrs = local.ssh_from_trusted_cidrs
     }
 
   # Only include allow_http if node SG is enabled
