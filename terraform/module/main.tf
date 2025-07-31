@@ -377,10 +377,8 @@ locals {
     }
 
     cluster_sg_common_rules = {
-      merge(
-        local.ingress_nodes_ephemeral_ports_tcp,
-        local.ssh_from_trusted_cidrs
-      )
+        ingress_nodes_ephemeral_ports_tcp = local.ingress_nodes_ephemeral_ports_tcp,
+        ssh_from_trusted_cidrs            = local.ssh_from_trusted_cidrs
     }
 
   # Only include allow_http if node SG is enabled
