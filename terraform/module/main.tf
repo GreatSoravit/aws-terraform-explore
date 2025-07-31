@@ -319,6 +319,7 @@ module "eks" {
   eks_managed_node_groups = {
     "${var.environment.name}-node" = {
       subnet_ids              = module.vpc.public_subnets
+      version                 = var.cluster_version
       min_size                = var.min_size
       max_size                = var.max_size
       desired_size            = var.desired_size
@@ -338,9 +339,9 @@ module "eks" {
 #----------------------------------locals---------------------------------------------
 locals {
     ebs_volume_sizes = {
-      dev = 8
-      qa  = 10 
-      prd = 20  
+      dev = 20
+      qa  = 20 
+      prd = 30  
     }
 
     ebs_iops = {
