@@ -340,15 +340,15 @@ module "eks" {
 #----------------------------------locals---------------------------------------------
 locals {
     # Base cluster SG rules when node SG is disabled
-    base_ephemeral_rule = {
-      description = "Nodes on ephemeral ports"
-      protocol    = "tcp"
-      from_port   = 1025
-      to_port     = 65535
-      type        = "ingress"
-      #cidr_blocks = var.enable_node_sg ? null : ["${var.environment.network_prefix}.0.0/16"]
-      #source_node_security_group = var.enable_node_sg ? true : null
-    }
+    temp_ephemeral_rule = {
+    description                = "Nodes on ephemeral ports"
+    protocol                   = "tcp"
+    from_port                  = 1025
+    to_port                    = 65535
+    type                       = "ingress"
+    source_node_security_group = var.enable_node_sg ? true : null
+    cidr_blocks                = !var.enable_node_sg ? ["${var.environment.network_prefix}.0.0/16"] : null
+  }
     
     ssh_from_trusted_cidrs = {
       description = "SSH access from internal & specific external IPs"
@@ -364,17 +364,15 @@ locals {
       ]
     }
 
-    rules_when_node_sg_is_true = {
-      ingress_nodes_ephemeral_ports_tcp = merge(local.base_ephemeral_rule, { source_node_security_group = true })
-      ssh_from_trusted_cidrs            = local.ssh_from_trusted_cidrs
+    cluster_sg_common_rules = {
+    # Create the final rule by iterating over the temporary rule and filtering out null values.
+    ingress_nodes_ephemeral_ports_tcp = {
+      for k, v in local.temp_ephemeral_rule : k => v if v != null
     }
 
-    rules_when_node_sg_is_false = {
-      ingress_nodes_ephemeral_ports_tcp = merge(local.base_ephemeral_rule, { cidr_blocks = ["${var.environment.network_prefix}.0.0/16"] })
-      ssh_from_trusted_cidrs            = local.ssh_from_trusted_cidrs
-    }
+    ssh_from_trusted_cidrs = local.ssh_from_trusted_cidrs
+  }
 
-    cluster_sg_common_rules = var.enable_node_sg ? local.rules_when_node_sg_is_true : local.rules_when_node_sg_is_false
 
   # Only include allow_http if node SG is enabled
   cluster_sg_http_rule = var.enable_node_sg ? {
@@ -384,8 +382,7 @@ locals {
       from_port                  = 80
       to_port                    = 80
       type                       = "ingress"
-      cidr_blocks = var.enable_node_sg ? null : ["${var.environment.network_prefix}.0.0/16"]
-      source_node_security_group = var.enable_node_sg ? true : null
+      source_node_security_group = true
     }
   } : {}
 
