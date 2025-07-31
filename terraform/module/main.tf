@@ -195,10 +195,10 @@ resource "aws_launch_template" "eks_nodes" {
   block_device_mappings {
       device_name = "/${var.environment.name}/xvda"
       ebs {
-        volume_size           = 8
+        volume_size           = local.ebs_volume_sizes[var.environment.name]
         volume_type           = "gp3"
-        iops                  = 3000
-        throughput            = 150
+        iops                  = local.ebs_iops[var.environment.name]
+        throughput            = local.ebs_throughput[var.environment.name]
         delete_on_termination = true
       }
   }
@@ -339,6 +339,24 @@ module "eks" {
 }
 #----------------------------------locals---------------------------------------------
 locals {
+    ebs_volume_sizes = {
+      dev = 8
+      qa  = 10 
+      prd = 20  
+    }
+
+    ebs_iops = {
+      dev = 3000  
+      qa  = 4000
+      prd = 4000
+    }
+
+    ebs_throughput = {
+      dev = 125
+      qa  = 150
+      prd = 200
+    }
+
     # Base cluster SG rules when node SG is disabled
     temp_ephemeral_rule = {
     description                = "Nodes on ephemeral ports"
