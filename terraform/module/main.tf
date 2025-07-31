@@ -186,14 +186,15 @@ resource "aws_launch_template" "eks_nodes" {
   name_prefix   = "${var.environment.name}-eks-nodes"
   image_id      = data.aws_ami.eks_worker.id
   instance_type = var.instance_type
-  
+  key_name      = aws_key_pair.eks_node_key.key_name 
+
   #vpc_security_group_ids = [
     #aws_security_group.eks_cluster_sg.id
     # module.eks.cluster_primary_security_group_id
   #]
 
   block_device_mappings {
-      device_name = "/${var.environment.name}/xvda"
+      device_name = "/dev/xvda"
       ebs {
         volume_size           = local.ebs_volume_sizes[var.environment.name]
         volume_type           = "gp3"
@@ -310,26 +311,23 @@ module "eks" {
 
   # EKS Managed Node Group(s)
   eks_managed_node_group_defaults = {
-    #ami_type       = "AL2_x86_64"
-    #instance_types = [var.instance_type]
-
     attach_cluster_primary_security_group = var.attach_cluster_primary_security_group
     # set when need to custom security group for node
-    # vpc_security_group_ids = [aws_security_group.additional.id] 
-    iam_role_additional_policies = {
-      additional = data.aws_iam_policy.additional.arn
-    }
+    # iam_role_additional_policies = { additional = data.aws_iam_policy.additional.arn }
   }
 
   eks_managed_node_groups = {
-    "default" = {
-      subnet_ids   = module.vpc.public_subnets
-      min_size     = var.min_size
-      max_size     = var.max_size
-      desired_size = var.desired_size
+    "${var.environment.name}-node" = {
+      subnet_ids              = module.vpc.public_subnets
+      min_size                = var.min_size
+      max_size                = var.max_size
+      desired_size            = var.desired_size
+    
+      create_launch_template     = false
+      use_custom_launch_template = true
+
       launch_template_id      = aws_launch_template.eks_nodes.id
-      launch_template_version = aws_launch_template.eks_nodes.latest_version      
-      key_name     = aws_key_pair.eks_node_key.key_name # include key pair in node_group
+      launch_template_version = aws_launch_template.eks_nodes.latest_version    
 
       update_config = {
         max_unavailable_percentage = 33
