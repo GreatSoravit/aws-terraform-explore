@@ -374,7 +374,7 @@ locals {
       ssh_from_trusted_cidrs            = local.ssh_from_trusted_cidrs
     }
 
-    cluster_sg_common_rules = var.enable_node_sg ? local.rules_when_node_sg_is_true : local.rules_when_node_sg_is_disabled
+    cluster_sg_common_rules = var.enable_node_sg ? local.rules_when_node_sg_is_true : local.rules_when_node_sg_is_false
 
   # Only include allow_http if node SG is enabled
   cluster_sg_http_rule = var.enable_node_sg ? {
