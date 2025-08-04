@@ -36,16 +36,7 @@ jobs:
         with:
           # This assumes you have an IAM role set up for GitHub Actions OIDC
           role-to-assume: arn:aws:iam::656697807925:role/GitHubOIDCRole-aws-terraform-explore
-          aws-region: ap-southeast-7
-          
-        # --- ADD THIS NEW STEP ---
-      - name: DEBUG - Check iam:GetUser Permission
-        run: |
-          aws iam simulate-principal-policy \
-            --policy-source-arn arn:aws:iam::656697807925:role/GitHubOIDCRole-aws-terraform-explore \
-            --action-names "iam:GetUser" \
-            --resource-arns "arn:aws:iam::656697807925:user/aws-terraform-explore"
-        # -------------------------
+          aws-region: ap-southeast-7   
         
 #      - name: Configure AWS credentials
 #        uses: aws-actions/configure-aws-credentials@v4
