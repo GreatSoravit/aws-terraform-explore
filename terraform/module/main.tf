@@ -8,12 +8,12 @@ module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "~> 5.0"
 
-  name = "eks-project-vpc"
-  cidr = "10.0.0.0/16"
+  name = "${var.environment.name}-eks-project-vpc"
+  cidr = "${var.environment.network_prefix}.0.0/16"
 
   azs             = ["${data.aws_region.current.name}a", "${data.aws_region.current.name}b"]
-  private_subnets = ["10.0.1.0/24", "10.0.2.0/24"]
-  public_subnets  = ["10.0.101.0/24", "10.0.102.0/24"]
+  private_subnets = ["${var.environment.network_prefix}.1.0/24", "${var.environment.network_prefix}.2.0/24"]
+  public_subnets  = ["${var.environment.network_prefix}.101.0/24", "${var.environment.network_prefix}.102.0/24"]
 
   # set public IP to connect with Internet
   map_public_ip_on_launch = true
@@ -34,25 +34,6 @@ module "vpc" {
   }
 }
 #-----------------------------------SG-----------------------------------------
-# additional security group to access following IP
-#resource "aws_security_group" "additional" {
-#  name_prefix = "aws-terraform-explore-additional"
-#  vpc_id      = module.vpc.vpc_id
-
-#  ingress {#z
-#    from_port = 22
-#    to_port   = 22
-#    protocol  = "tcp"
-#    cidr_blocks = [
-#      "10.0.0.0/8",
-#      "172.16.0.0/12",
-#      "192.168.0.0/16",
-#      "49.228.99.81/32",
-#    ]
-#  }
-#  tags = { Name = "aws-terraform-explore" }
-#}
-
 # Security group for eks cluster
 #resource "aws_security_group" "eks_cluster_sg" {
 #  name_prefix = "${var.environment.name}-eks-cluster"
@@ -147,7 +128,7 @@ data "aws_iam_policy" "additional" {
 
 # Creates the dedicated IAM role for the AWS Load Balancer Controller
 resource "aws_iam_role" "aws_load_balancer_controller" {
-  name = "EKS-ALB-Controller-Role" # Use the same name you created in the console
+  name = "EKS-ALB-Controller-Role-${var.environment.name}" # Use the same name you created in the console
 
   assume_role_policy = jsonencode({
     Version   = "2012-10-17",
@@ -171,9 +152,9 @@ resource "aws_iam_role" "aws_load_balancer_controller" {
 
 # Use IAM policy json file to create policy
 resource "aws_iam_policy" "lb_controller_policy" {
-  name        = "AWSLoadBalancerControllerIAMPolicy"
+  name        = "AWSLoadBalancerControllerIAMPolicy-${var.environment.name}"
   path        = "/"
-  description = "Policy for AWS Load Balancer Controller"
+  description = "Policy for AWS Load Balancer Controller in ${var.environment.name} environment"
   policy      = file("${path.module}/IAM/aws_load_balancer_controller_iam_policy.json")  # path to downloaded file
 }
 
@@ -182,11 +163,12 @@ resource "aws_iam_role_policy_attachment" "aws_load_balancer_controller" {
   role       = aws_iam_role.aws_load_balancer_controller.name
   policy_arn = aws_iam_policy.lb_controller_policy.arn
 }
+
 #--------------------------------------------------------------------------------
 # key pair generate in local machine then upload to aws attach to instance
 resource "aws_key_pair" "eks_node_key" {
-  key_name   = "eks-node-key"
-  public_key = file("${path.module}/eks-node-key.pub")
+  key_name   = "${var.environment.name}-eks-node-key"
+  public_key = file("${path.module}/keypair/eks-node-key.pub")
 }
 
 # seach the lastest AMI based on filter 
@@ -202,22 +184,22 @@ data "aws_ami" "eks_worker" {
 # launch template for eks_node
 resource "aws_launch_template" "eks_nodes" {
   name_prefix   = "${var.environment.name}-eks-nodes"
-  image_id      = data.aws_ami.eks_worker.id
+  #image_id      = data.aws_ami.eks_worker.id
   instance_type = var.instance_type
-  
+  key_name      = aws_key_pair.eks_node_key.key_name 
+
   #vpc_security_group_ids = [
     #aws_security_group.eks_cluster_sg.id
-    # module.eks.cluster_primary_security_group_id #,
-    # aws_security_group.ssh_access_sg.id           # custom rule for SSH
+    # module.eks.cluster_primary_security_group_id
   #]
 
   block_device_mappings {
       device_name = "/dev/xvda"
       ebs {
-        volume_size           = 8
+        volume_size           = local.ebs_volume_sizes[var.environment.name]
         volume_type           = "gp3"
-        iops                  = 3000
-        throughput            = 150
+        iops                  = local.ebs_iops[var.environment.name]
+        throughput            = local.ebs_throughput[var.environment.name]
         delete_on_termination = true
       }
   }
@@ -225,7 +207,7 @@ resource "aws_launch_template" "eks_nodes" {
   tag_specifications {
     resource_type = "instance"
     tags = {
-      Name = "aws-terraform-explore"
+      Name = "${var.environment.name}-aws-terraform-explore"
     }
   }
 }
@@ -240,7 +222,7 @@ resource "aws_kms_key" "eks_secrets" {
 
 # Create an alias for the key to make it easier to reference
 resource "aws_kms_alias" "eks_secrets" {
-  name          = "alias/eks-secrets-key"
+  name          = "alias/${var.environment.name}-eks-secrets-key"
   target_key_id = aws_kms_key.eks_secrets.key_id
 }
 
@@ -249,8 +231,8 @@ module "eks" {
   source  = "terraform-aws-modules/eks/aws"
   version = "~> 20.0"
 
-  cluster_name    = "${var.environment.name}-eks-cluster"
-  cluster_version = var.cluster_version
+  cluster_name                   = "${var.environment.name}-eks-cluster"
+  cluster_version                = var.cluster_version
   cluster_endpoint_public_access = true
 
   #create_cluster_primary_security_group_tags = false
@@ -301,30 +283,12 @@ module "eks" {
     additional = data.aws_iam_policy.additional.arn
   }
 
-  vpc_id     = module.vpc.vpc_id
-  subnet_ids = module.vpc.private_subnets
+  vpc_id                   = module.vpc.vpc_id
+  subnet_ids               = module.vpc.private_subnets
   control_plane_subnet_ids = module.vpc.intra_subnets
 
   # Extend cluster security group rules
-  cluster_security_group_additional_rules = {
-    ingress_nodes_ephemeral_ports_tcp = {
-      description                = "Nodes on ephemeral ports"
-      protocol                   = "tcp"
-      from_port                  = 1025
-      to_port                    = 65535
-      type                       = "ingress"
-      cidr_blocks = ["10.0.0.0/16"]
-      #source_node_security_group = true
-    }
-
-#    allow_http = {
-#      description              = "Allow HTTP from ALB to EKS nodes"
-#      protocol                 = "tcp"
-#      from_port                = 80
-#      to_port                  = 80
-#      type                     = "ingress"
-      #source_node_security_group = true
-#    }
+  cluster_security_group_additional_rules = local.cluster_security_group_additional_rules
 
 #    allow_https = {
 #      description              = "Allow HTTPS from ALB to EKS nodes"
@@ -335,152 +299,138 @@ module "eks" {
 #      source_node_security_group = true
 #    }
 
-    ssh_from_trusted_cidrs = {
-    description  = "SSH access from internal & specific external IPs"
-    protocol     = "tcp"
-    from_port    = 22
-    to_port      = 22
-    type         = "ingress"
-    cidr_blocks  = [
-      "10.0.0.0/8",
-      "172.16.0.0/12",
-      "192.168.0.0/16",
-      "49.228.99.81/32"
-    ]
-    }
-  }
+  # disable when in dev environment
+  create_node_security_group = var.create_node_security_group
 
-  create_node_security_group = false
   # set when need to create custom security group for node to tag
-  #node_security_group_tags = { "kubernetes.io/cluster/${var.environment.name}-eks-cluster" = "owned" }
+  node_security_group_tags = var.enable_node_sg ? { 
+    "kubernetes.io/cluster/${var.environment.name}-eks-cluster" = null } : {}
 
- # Extend node-to-node security group rules
- # node_security_group_additional_rules = {
- #   ingress_self_all = {
- #     description = "Node to node all ports/protocols"
- #     protocol    = "-1"
- #     from_port   = 0
- #     to_port     = 0
- #     type        = "ingress"
- #     self        = true
- #   }
-
- #   ssh_from_trusted_cidrs = {
- #   description  = "SSH access from internal & specific external IPs"
- #   protocol     = "tcp"
- #   from_port    = 22
- #   to_port      = 22
- #   type         = "ingress"
- #   cidr_blocks  = [
- #     "10.0.0.0/8",
- #     "172.16.0.0/12",
- #     "192.168.0.0/16",
- #     "49.228.99.81/32"
- #   ]
- # }
- # }
+  # Extend node-to-node security group only outside dev environment
+  node_security_group_additional_rules = var.create_node_security_group ? local.node_security_group_rules : null
 
   # EKS Managed Node Group(s)
   eks_managed_node_group_defaults = {
-    ami_type       = "AL2_x86_64"
-    instance_types = [var.instance_type]
-
-    attach_cluster_primary_security_group = true
+    attach_cluster_primary_security_group = var.attach_cluster_primary_security_group
     # set when need to custom security group for node
-    # vpc_security_group_ids                = [aws_security_group.additional.id] 
-    iam_role_additional_policies = {
-      additional = data.aws_iam_policy.additional.arn
-    }
+    # iam_role_additional_policies = { additional = data.aws_iam_policy.additional.arn }
   }
 
   eks_managed_node_groups = {
-    "default" = {
-      subnet_ids = module.vpc.public_subnets
-      min_size     = var.min_size
-      max_size     = var.max_size
-      desired_size = var.desired_size
-      
-      # include key pair in node_group
-      key_name     = aws_key_pair.eks_node_key.key_name
+    "${var.environment.name}-node" = {
+      subnet_ids              = module.vpc.public_subnets
+      version                 = var.cluster_version
+      min_size                = var.min_size
+      max_size                = var.max_size
+      desired_size            = var.desired_size
+    
+      create_launch_template     = false
+      use_custom_launch_template = true
 
       launch_template_id      = aws_launch_template.eks_nodes.id
-      launch_template_version = aws_launch_template.eks_nodes.latest_version
-
-      # Needed by the aws-ebs-csi-driver
-      #iam_role_additional_policies = {
-        #AmazonEBSCSIDriverPolicy = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
-      #}
+      launch_template_version = aws_launch_template.eks_nodes.latest_version    
 
       update_config = {
-        max_unavailable_percentage = 33 # or set `max_unavailable`
+        max_unavailable_percentage = 33
       }
     }
   }
 }
-#--------------------------------------------------------------------------------
-# Data source to get your current IP address
-#data "http" "my_ip" {
-#  url = "http://ipv4.icanhazip.com"
-#}
-# Creates a new security group
-#resource "aws_security_group" "ssh_access_sg" {
-#  name        = "ssh-from-my-ip"
-#  description = "Allow SSH inbound traffic from my IP"
-#  vpc_id      = module.vpc.vpc_id # Associates it with your VPC
+#----------------------------------locals---------------------------------------------
+locals {
+    ebs_volume_sizes = {
+      dev = 20
+      qa  = 20 
+      prd = 30  
+    }
 
-  # Rule allowing incoming SSH traffic from your IP
- # ingress {
- #   from_port   = 22
- #   to_port     = 22
- #   protocol    = "tcp"
- #   cidr_blocks = ["${chomp(data.http.my_ip.response_body)}/32"]
- # }
+    ebs_iops = {
+      dev = 3000  
+      qa  = 4000
+      prd = 4000
+    }
 
-  # Allows all outbound traffic (common practice)
-#  egress {
-#    from_port   = 0
-#    to_port     = 0
-#    protocol    = "-1"
-#    cidr_blocks = ["0.0.0.0/0"]
-#  }
-#}
-#--------------------------------------------------------------------------------
-# This section defines 2-node EC2 instance group.
-#resource "aws_eks_node_group" "general_purpose" {
-#  cluster_name    = module.eks.cluster_name
-#  node_group_name = "general-purpose"
+    ebs_throughput = {
+      dev = 125
+      qa  = 150
+      prd = 200
+    }
 
-#  node_role_arn   = data.aws_iam_role.eks_nodes.arn
-#  subnet_ids      = module.vpc.private_subnets
-  
-#  launch_template {
-#    id      = aws_launch_template.eks_nodes.id
-#    version = aws_launch_template.eks_nodes.latest_version
-#  }
+    # Base cluster SG rules when node SG is disabled
+    temp_ephemeral_rule = {
+    description                = "Nodes on ephemeral ports"
+    protocol                   = "tcp"
+    from_port                  = 1025
+    to_port                    = 65535
+    type                       = "ingress"
+    source_node_security_group = var.enable_node_sg ? true : null
+    cidr_blocks                = !var.enable_node_sg ? ["${var.environment.network_prefix}.0.0/16"] : null
+  }
+    
+    ssh_from_trusted_cidrs = {
+      description = "SSH access from internal & specific external IPs"
+      protocol    = "tcp"
+      from_port   = 22
+      to_port     = 22
+      type        = "ingress"
+      cidr_blocks = [
+        "${var.environment.network_prefix}.0.0/16",
+        "172.16.0.0/12",
+        "192.168.0.0/16",
+        "49.228.99.81/32"
+      ]
+    }
 
-#  scaling_config {
-#    desired_size = var.desired_size
-#    max_size     = var.max_size
-#    min_size     = var.min_size
-#  }
+    cluster_sg_common_rules = {
+    # Create the final rule by iterating over the temporary rule and filtering out null values.
+    ingress_nodes_ephemeral_ports_tcp = {
+      for k, v in local.temp_ephemeral_rule : k => v if v != null
+    }
 
-  # This ensures the control plane is ready before creating nodes.
-#  depends_on = [module.eks]
-#}
-#--------------------------------------------------------------------------------
-# Creates a standalone General Purpose SSD (gp3) EBS volume.
-# This volume can be dynamically provisioned to pods in EKS using the EBS CSI Driver.
-# resource "aws_ebs_volume" "database_volume" {
-#  availability_zone = module.vpc.azs[0]  # Must be in the same AZ as the node that will use it.
-#  size              = 8                  # minimum size in GB (8GB is the smallest allowed)
-#  type              = "gp3"              # cheapest general purpose SSD volume
+    ssh_from_trusted_cidrs = local.ssh_from_trusted_cidrs
+  }
 
-  # tune IOPS and throughput to lowest values for cost savings
-#  iops              = 300           # minimum for gp3 (300 IOPS)
-#  throughput        = 125           # minimum throughput (MB/s)
 
-#  tags = {
-#    Name    = "ebs"
-#    Project = "aws-terraform-explore"
-#  }
-#}
+  # Only include allow_http if node SG is enabled
+  cluster_sg_http_rule = var.enable_node_sg ? {
+    allow_http = {
+      description                = "Allow HTTP from ALB to EKS nodes"
+      protocol                   = "tcp"
+      from_port                  = 80
+      to_port                    = 80
+      type                       = "ingress"
+      source_node_security_group = true
+    }
+  } : {}
+
+  # Final rules: merged
+  cluster_security_group_additional_rules = merge(
+    local.cluster_sg_common_rules,
+    local.cluster_sg_http_rule
+  )
+
+  node_security_group_rules = {
+    ingress_self_all = {
+      description = "Node to node all ports/protocols"
+      protocol    = "-1"
+      from_port   = 0
+      to_port     = 0
+      type        = "ingress"
+      self        = true
+    }
+
+    ssh_from_trusted_cidrs = {
+      description = "SSH access from internal & specific external IPs"
+      protocol    = "tcp"
+      from_port   = 22
+      to_port     = 22
+      type        = "ingress"
+      cidr_blocks = [
+        "${var.environment.network_prefix}.0.0/16",
+        "172.16.0.0/12",
+        "192.168.0.0/16",
+        "49.228.99.81/32"
+      ]
+    }
+  }
+}
