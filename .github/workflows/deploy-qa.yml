@@ -1,4 +1,4 @@
-ame: 'Deploy to QA Environment'
+name: 'Deploy to QA Environment'
 
 on:
   # Trigger this workflow on a push to the main branch...
