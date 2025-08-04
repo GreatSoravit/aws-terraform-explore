@@ -10,6 +10,7 @@ module "dev" {
     enable_node_sg                        = var.enable_node_sg
     create_node_security_group            = var.create_node_security_group
     attach_cluster_primary_security_group = var.attach_cluster_primary_security_group
+	eks_node_public_key 				  = file("../../module/keypair/eks-node-key.pub")
 }
 
 data "aws_eks_cluster_auth" "this" {
