@@ -1,7 +1,6 @@
 # Ignore SSH keys
 eks-node-key
-eks-node-key.pub
 *.pem
 
 # Ignore a directory keypair
-keypair/
+key_pem/
