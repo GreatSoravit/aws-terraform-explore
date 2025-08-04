@@ -40,9 +40,3 @@ variable "enable_node_sg" {
   description = "Enable create node of security group"
   type        = bool
 }
-
-variable "eks_node_public_key" {
-  description = "The public key material for the EKS node key pair."
-  type        = string
-}
-
