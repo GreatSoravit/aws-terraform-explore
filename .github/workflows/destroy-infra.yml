@@ -42,10 +42,10 @@ jobs:
         id: init
         run: terraform init
         # Use the environment chosen by the user when they ran the workflow
-        working-directory: environment/${{ github.event.inputs.environment }}
+        working-directory: terraform/environment/${{ github.event.inputs.environment }}
 
       - name: Terraform Destroy
         id: destroy
         run: terraform destroy -auto-approve
         # Use the environment chosen by the user
-        working-directory: environment/${{ github.event.inputs.environment }}
+        working-directory: terraform/environment/${{ github.event.inputs.environment }}
