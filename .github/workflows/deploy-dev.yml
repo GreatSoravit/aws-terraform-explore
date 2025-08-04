@@ -1,0 +1,101 @@
+name: 'Deploy to DEV Environment'
+
+on:
+  # Trigger this workflow on a push to the main branch...
+  push:
+    branches:
+      - main
+    # ...but ONLY if files inside the 'dev' directory have changed.
+    paths:
+      - 'environment/dev/**'
+
+  # Also trigger on a pull request targeting the main branch...
+  pull_request:
+    branches:
+      - main
+    # ...but ONLY if files inside the 'dev' directory have changed.
+    paths:
+      - 'environment/dev/**'
+
+permissions:
+  id-token: write      # Required for OIDC to securely connect to AWS
+  contents: read       # Required for the checkout action
+  pull-requests: write # Required to post plan comments on PRs
+
+jobs:
+  terraform-dev:
+    name: 'Terraform Plan/Apply for DEV'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          # This assumes you have an IAM role set up for GitHub Actions OIDC
+          role-to-assume: arn:aws:iam::656697807925:role/GitHubOIDCRole-aws-terraform-explore
+          aws-region: ap-southeast-7
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        id: init
+        run: terraform init
+        # --- IMPORTANT: This points to your DEV environment ---
+        working-directory: environment/dev
+
+      - name: Terraform Plan
+        id: plan
+        run: terraform plan -no-color -out=tfplan
+        # --- IMPORTANT: This points to your DEV environment ---
+        working-directory: environment/dev
+
+      # If this is a Pull Request, add the plan output as a comment
+      - name: Add Plan to PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const output = `#### Terraform Plan for DEV Environment ####
+            \`\`\`hcl
+            ${{ steps.plan.outputs.stdout }}
+            \`\`\`
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            });
+
+      # If this is a push to the main branch, run terraform apply
+      - name: Terraform Apply
+        id: apply
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: terraform apply -auto-approve tfplan
+        # --- IMPORTANT: This points to your DEV environment ---
+        working-directory: environment/dev
+
+      # --- Application Deployment Steps ---
+      # These steps will only run after a successful 'terraform apply' on a push to main.
+      - name: Install kubectl
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x ./kubectl
+          sudo mv ./kubectl /usr/local/bin/kubectl
+
+      - name: Configure kubectl
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: aws eks update-kubeconfig --region ap-southeast-7 --name dev-eks-cluster
+
+      - name: Create Namespace
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: kubectl create namespace webapp --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Deploy Application to EKS
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: kubectl apply -f my-app-deployment.yaml -n webapp
