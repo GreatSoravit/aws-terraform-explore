@@ -53,3 +53,8 @@ variable "attach_cluster_primary_security_group" {
   type        = bool
   default     = true
 }
+
+variable "eks_node_public_key" {
+  description = "The public key material for the EKS node key pair."
+  type        = string
+} 
