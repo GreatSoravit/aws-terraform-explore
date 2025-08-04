@@ -7,7 +7,7 @@ on:
       - main
     # ...but ONLY if files inside the 'qa' directory have changed.
     paths:
-      - 'environment/qa/**'
+      - 'terraform/environment/qa/**'
 
   # Also trigger on a pull request targeting the main branch...
   pull_request:
@@ -15,7 +15,7 @@ on:
       - main
     # ...but ONLY if files inside the 'qa' directory have changed.
     paths:
-      - 'environment/qa/**'
+      - 'terraform/environment/qa/**'
 
 permissions:
   id-token: write      # Required for OIDC to securely connect to AWS
@@ -53,13 +53,13 @@ jobs:
         id: init
         run: terraform init
         # --- IMPORTANT: This points to your QA environment ---
-        working-directory: environment/qa
+        working-directory: terraform/environment/qa
 
       - name: Terraform Plan
         id: plan
         run: terraform plan -no-color -out=tfplan
         # --- IMPORTANT: This points to your QA environment ---
-        working-directory: environment/qa
+        working-directory: terraform/environment/qa
 
       # If this is a Pull Request, add the plan output as a comment
       - name: Add Plan to PR
@@ -85,7 +85,7 @@ jobs:
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: terraform apply -auto-approve tfplan
         # --- IMPORTANT: This points to your QA environment ---
-        working-directory: environment/qa
+        working-directory: terraform/environment/qa
 
       # --- Application Deployment Steps ---
       # These steps will only run after a successful 'terraform apply' on a push to main.

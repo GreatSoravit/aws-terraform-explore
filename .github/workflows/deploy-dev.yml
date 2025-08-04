@@ -7,7 +7,7 @@ on:
       - main
     # ...but ONLY if files inside the 'dev' directory have changed.
     paths:
-      - 'environment/dev/**'
+      - 'terraform/environment/dev/**'
 
   # Also trigger on a pull request targeting the main branch...
   pull_request:
@@ -15,7 +15,7 @@ on:
       - main
     # ...but ONLY if files inside the 'dev' directory have changed.
     paths:
-      - 'environment/dev/**'
+      - 'terraform/environment/dev/**'
 
 permissions:
   id-token: write      # Required for OIDC to securely connect to AWS
@@ -53,13 +53,13 @@ jobs:
         id: init
         run: terraform init
         # --- IMPORTANT: This points to your DEV environment ---
-        working-directory: environment/dev
+        working-directory: terraform/environment/dev
 
       - name: Terraform Plan
         id: plan
         run: terraform plan -no-color -out=tfplan
         # --- IMPORTANT: This points to your DEV environment ---
-        working-directory: environment/dev
+        working-directory: terraform/environment/dev
 
       # If this is a Pull Request, add the plan output as a comment
       - name: Add Plan to PR
@@ -85,7 +85,7 @@ jobs:
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: terraform apply -auto-approve tfplan
         # --- IMPORTANT: This points to your DEV environment ---
-        working-directory: environment/dev
+        working-directory: terraform/environment/dev
 
       # --- Application Deployment Steps ---
       # These steps will only run after a successful 'terraform apply' on a push to main.
