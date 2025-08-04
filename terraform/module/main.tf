@@ -168,7 +168,7 @@ resource "aws_iam_role_policy_attachment" "aws_load_balancer_controller" {
 # key pair generate in local machine then upload to aws attach to instance
 resource "aws_key_pair" "eks_node_key" {
   key_name   = "${var.environment.name}-eks-node-key"
-  public_key = file("${path.module}/eks-node-key.pub")
+  public_key = file("${path.module}/keypair/eks-node-key.pub")
 }
 
 # seach the lastest AMI based on filter 
