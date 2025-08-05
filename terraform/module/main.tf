@@ -244,19 +244,30 @@ module "eks" {
   access_entries = {
     # A descriptive name for the access entry
     terraform_user_admin = {
-      principal_arn = data.aws_iam_user.terraform_user.arn
-      
-      # A list of policies to associate with user
-      policy_associations = {
+		principal_arn = data.aws_iam_user.terraform_user.arn
+		# A list of policies to associate with user
+		policy_associations = {
         # A descriptive name for the policy association
-        admin = {
-          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
-          access_scope = {
-            type = "cluster"
-          }
-        }
+			admin = {
+				policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+				access_scope = {
+				type = "cluster"
+				}
+			}
       }
-    }
+    },
+	
+	github_actions_admin = {
+		principal_arn = "arn:aws:iam::656697807925:role/GitHubOIDCRole-aws-terraform-explore"
+		policy_associations = {
+			admin = {
+				policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+				access_scope = {
+				type = "cluster"
+				}
+			}
+		}
+	}
   }
 
   cluster_addons = {
