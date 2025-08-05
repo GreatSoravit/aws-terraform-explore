@@ -106,4 +106,4 @@ jobs:
 
       - name: Deploy Application to EKS
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        run: kubectl apply -f my-app-deployment.yaml -n webapp
+        run: kubectl apply -f terraform/my-app-deployment.yaml -n webapp
