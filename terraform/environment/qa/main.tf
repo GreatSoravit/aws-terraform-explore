@@ -1,7 +1,7 @@
 module "qa" {
     source = "../../module/"
 
-    # Setup variable for dev environment
+    # Setup variable for dev environment 
     instance_type                         = var.instance_type
     min_size                              = var.min_size
     max_size                              = var.max_size
@@ -18,21 +18,30 @@ data "aws_eks_cluster_auth" "this" {
 }
 
 provider "kubernetes" {
+  alias = "eks"
   host                   = module.qa.cluster_endpoint
   cluster_ca_certificate = base64decode(module.qa.cluster_certificate_authority_data)
   token                  = data.aws_eks_cluster_auth.this.token
 }
 
 provider "helm" {
+  alias = "eks"
   kubernetes {
     host                   = module.qa.cluster_endpoint
     cluster_ca_certificate = base64decode(module.qa.cluster_certificate_authority_data)
-    token                  = data.aws_eks_cluster_auth.this.token
+    #token                 = data.aws_eks_cluster_auth.this.token
+	exec {
+      api_version = "client.authentication.k8s.io/v1beta1"
+      args        = ["eks", "get-token", "--cluster-name", module.qa.cluster_name]
+      command     = "aws"
+    }
   }
 }
 
 # Installs the AWS Load Balancer Controller using its Helm chart
 resource "helm_release" "aws_load_balancer_controller" {
+  provider = helm.eks
+  
   name       = "aws-load-balancer-controller"
   repository = "https://aws.github.io/eks-charts"
   chart      = "aws-load-balancer-controller"
