@@ -76,6 +76,8 @@ resource "helm_release" "argocd" {
 }
 
 data "kubernetes_secret_v1" "argocd_initial_admin_secret" {
+  count = var.enable_argocd ? 1 : 0
+  
   # fully installed before trying to read the secret
   depends_on = [helm_release.argocd]
 
