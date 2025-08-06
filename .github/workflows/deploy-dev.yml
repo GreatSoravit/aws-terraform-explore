@@ -1,18 +1,18 @@
 name: 'Deploy to DEV Environment'
 
 on:
-  # Trigger this workflow on a push to the main branch...
+  # Trigger this workflow on a push to the v2.00-argocd branch...
   push:
     branches:
-      - main
+      - v2.00-argocd
     # ...but ONLY if files inside the 'dev' directory have changed.
     paths:
       - 'terraform/environment/dev/**'
 
-  # Also trigger on a pull request targeting the main branch...
+  # Also trigger on a pull request targeting the v2.00-argocd branch...
   pull_request:
     branches:
-      - main
+      - v2.00-argocd
     # ...but ONLY if files inside the 'dev' directory have changed.
     paths:
       - 'terraform/environment/dev/**'
@@ -79,31 +79,31 @@ jobs:
               body: output
             });
 
-      # If this is a push to the main branch, run terraform apply
+      # If this is a push to the v2.00-argocd branch, run terraform apply
       - name: Terraform Apply
         id: apply
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        if: github.ref == 'refs/heads/v2.00-argocd' && github.event_name == 'push'
         run: terraform apply -auto-approve tfplan
         # --- IMPORTANT: This points to your DEV environment ---
         working-directory: terraform/environment/dev
 
       # --- Application Deployment Steps ---
-      # These steps will only run after a successful 'terraform apply' on a push to main.
+      # These steps will only run after a successful 'terraform apply' on a push to v2.00-argocd.
       - name: Install kubectl
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        if: github.ref == 'refs/heads/v2.00-argocd' && github.event_name == 'push'
         run: |
           curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
           chmod +x ./kubectl
           sudo mv ./kubectl /usr/local/bin/kubectl
 
  #     - name: Configure kubectl
- #       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+ #       if: github.ref == 'refs/heads/v2.00-argocd' && github.event_name == 'push'
  #       run: aws eks update-kubeconfig --region ap-southeast-7 --name dev-eks-cluster
 
  #     - name: Create Namespace
- #       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+ #       if: github.ref == 'refs/heads/v2.00-argocd' && github.event_name == 'push'
  #       run: kubectl create namespace webapp --dry-run=client -o yaml | kubectl apply -f -
 
  #     - name: Deploy Application to EKS
- #       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+ #       if: github.ref == 'refs/heads/v2.00-argocd' && github.event_name == 'push'
  #       run: kubectl apply -f terraform/my-app-deployment.yaml -n webapp
