@@ -96,14 +96,14 @@ jobs:
           chmod +x ./kubectl
           sudo mv ./kubectl /usr/local/bin/kubectl
 
-      - name: Configure kubectl
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        run: aws eks update-kubeconfig --region ap-southeast-7 --name dev-eks-cluster
+ #     - name: Configure kubectl
+ #       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+ #       run: aws eks update-kubeconfig --region ap-southeast-7 --name dev-eks-cluster
 
-      - name: Create Namespace
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        run: kubectl create namespace webapp --dry-run=client -o yaml | kubectl apply -f -
+ #     - name: Create Namespace
+ #       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+ #       run: kubectl create namespace webapp --dry-run=client -o yaml | kubectl apply -f -
 
-      - name: Deploy Application to EKS
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        run: kubectl apply -f terraform/my-app-deployment.yaml -n webapp
+ #     - name: Deploy Application to EKS
+ #       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+ #       run: kubectl apply -f terraform/my-app-deployment.yaml -n webapp

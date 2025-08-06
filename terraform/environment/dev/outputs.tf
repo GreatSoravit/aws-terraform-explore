@@ -32,3 +32,9 @@ output "configure_kubectl" {
 output "eks_cluster_security_group_id" {
   value = module.dev.eks_cluster_security_group_id
 }
+
+output "argocd_initial_admin_password" {
+  description = "The initial admin password for the Argo CD UI."
+  value       = base64decode(data.kubernetes_secret_v1.argocd_initial_admin_secret.data.password)
+  sensitive   = true
+}

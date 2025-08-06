@@ -17,27 +17,6 @@ data "aws_eks_cluster_auth" "this" {
   name = module.dev.cluster_name
 }
 
-provider "kubernetes" {
-  alias					 = "eks"
-  host                   = module.dev.cluster_endpoint
-  cluster_ca_certificate = base64decode(module.dev.cluster_certificate_authority_data)
-  token                  = data.aws_eks_cluster_auth.this.token
-}
-
-provider "helm" {
-  alias = "eks"
-  kubernetes {
-    host                   = module.dev.cluster_endpoint
-    cluster_ca_certificate = base64decode(module.dev.cluster_certificate_authority_data)
-    #token                  = data.aws_eks_cluster_auth.this.token
-	exec {
-      api_version = "client.authentication.k8s.io/v1beta1"
-      args        = ["eks", "get-token", "--cluster-name", module.dev.cluster_name]
-      command     = "aws"
-    }
-  }
-}
-
 # Installs the AWS Load Balancer Controller using its Helm chart
 resource "helm_release" "aws_load_balancer_controller" {
   provider = helm.eks
@@ -69,4 +48,35 @@ resource "helm_release" "aws_load_balancer_controller" {
   depends_on = [
     module.dev
   ]
+}
+
+resource "helm_release" "argocd" {
+  name       = "argocd"
+  repository = "https://argoproj.github.io/argo-helm"
+  chart      = "argo-cd"
+  namespace  = "argocd"
+  version    = "5.51.2" # recent version
+
+  create_namespace = true
+
+  # make the server accessible via a LoadBalancer:
+  set {
+    name  = "server.service.type"
+    value = "LoadBalancer"
+  }
+  
+  # Ensures the EKS cluster is ready before trying to install argocd
+  depends_on = [
+    module.dev
+  ]
+}
+
+data "kubernetes_secret_v1" "argocd_initial_admin_secret" {
+  # fully installed before trying to read the secret
+  depends_on = [helm_release.argocd]
+
+  metadata {
+    name      = "argocd-initial-admin-secret"
+    namespace = "argocd"
+  }
 }
