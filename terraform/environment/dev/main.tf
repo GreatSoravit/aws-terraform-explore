@@ -66,7 +66,7 @@ resource "helm_release" "argocd" {
   # make the server accessible via a LoadBalancer:
   set {
     name  = "server.service.type"
-    value = "LoadBalancer"
+    value = "ClusterIP"
   }
   
   # Ensures the EKS cluster is ready before trying to install argocd
