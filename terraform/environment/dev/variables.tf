@@ -44,5 +44,5 @@ variable "enable_node_sg" {
 variable "enable_argocd" {
   description = "If true, deploy the Argo CD Helm chart."
   type        = bool
-  default     = true
+  default     = false
 }
