@@ -111,7 +111,10 @@ module "eks" {
       min_size                = var.min_size
       max_size                = var.max_size
       desired_size            = var.desired_size
-    
+	  
+	  # Use spot instance for development project where interruption are not critical
+	  capacity_type 		  = "SPOT"
+	  
       create_launch_template     = false
       use_custom_launch_template = true
 

@@ -2,7 +2,7 @@ environment = {
   name           = "qa"
   network_prefix = "10.1"
 }
-instance_type                         = "t3.small"
+instance_type                         = "t3.medium"
 min_size                              = 2
 max_size                              = 4
 desired_size                          = 2
