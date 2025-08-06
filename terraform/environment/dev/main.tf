@@ -51,6 +51,8 @@ resource "helm_release" "aws_load_balancer_controller" {
 }
 
 resource "helm_release" "argocd" {
+  count = var.enable_argocd ? 1 : 0
+  
   provider = helm.eks
   
   name       = "argocd"
