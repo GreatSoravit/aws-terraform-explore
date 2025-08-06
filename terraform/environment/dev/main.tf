@@ -1,7 +1,7 @@
 module "dev" {
     source = "../../module/"
 
-    # Setup variable for dev environment  
+    # Setup variable for dev environment
     instance_type                         = var.instance_type
     min_size                              = var.min_size
     max_size                              = var.max_size
@@ -76,8 +76,8 @@ resource "helm_release" "argocd" {
 }
 
 data "kubernetes_secret_v1" "argocd_initial_admin_secret" {
-  provider = kubernetes.eks
   count = var.enable_argocd ? 1 : 0
+  provider = kubernetes.eks
   
   # fully installed before trying to read the secret
   depends_on = [helm_release.argocd]
