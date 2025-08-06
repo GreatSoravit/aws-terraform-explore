@@ -35,6 +35,6 @@ output "eks_cluster_security_group_id" {
 
 output "argocd_initial_admin_password" {
   description = "The initial admin password for the Argo CD UI."
-  value       = base64decode(data.kubernetes_secret_v1.argocd_initial_admin_secret.data.password)
+  value = length(data.kubernetes_secret_v1.argocd_initial_admin_secret) > 0 ? base64decode(data.kubernetes_secret_v1.argocd_initial_admin_secret[0].data.password) : "ArgoCD was not deployed."
   sensitive   = true
 }
