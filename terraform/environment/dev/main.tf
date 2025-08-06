@@ -51,6 +51,8 @@ resource "helm_release" "aws_load_balancer_controller" {
 }
 
 resource "helm_release" "argocd" {
+  provider = helm.eks
+  
   name       = "argocd"
   repository = "https://argoproj.github.io/argo-helm"
   chart      = "argo-cd"
