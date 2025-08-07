@@ -87,3 +87,36 @@ data "kubernetes_secret_v1" "argocd_initial_admin_secret" {
     namespace = "argocd"
   }
 }
+
+resource "kubernetes_job" "argocd_pre_delete_cleanup" {
+  # This depends on the same conditional as your Argo CD release
+  count = var.enable_argocd ? 1 : 0
+
+  metadata {
+    name      = "argocd-cleanup-finalizers"
+    namespace = "argocd"
+    annotations = {
+      # This Helm hook tells it to run BEFORE the release is deleted
+      "helm.sh/hook" = "pre-delete"
+      "helm.sh/hook-delete-policy" = "hook-succeeded"
+    }
+  }
+  spec {
+    template {
+      spec {
+        service_account_name = "argocd-server" # Use an account with patch/delete rights
+        container {
+          name  = "cleanup"
+          image = "bitnami/kubectl" # Use a kubectl image
+          command = [
+            "/bin/sh",
+            "-c",
+            # This script finds all applications and removes their finalizers
+            "kubectl patch applications --all -n argocd -p '{\"metadata\":{\"finalizers\":[]}}' --type=merge; kubectl delete applications --all -n argocd"
+          ]
+        }
+        restart_policy = "Never"
+      }
+    }
+  }
+}
