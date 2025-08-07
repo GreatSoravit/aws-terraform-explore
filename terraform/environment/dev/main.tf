@@ -103,6 +103,9 @@ resource "kubernetes_job" "argocd_pre_delete_cleanup" {
   }
   spec {
     template {
+	  metadata {
+        name = "argocd-cleanup-pod"
+      }	
       spec {
         service_account_name = "argocd-server" # Use an account with patch/delete rights
         container {
