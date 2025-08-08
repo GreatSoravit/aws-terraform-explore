@@ -68,7 +68,7 @@ resource "helm_release" "argocd" {
   name       = "argocd"
   repository = "https://argoproj.github.io/argo-helm"
   chart      = "argo-cd"
-  namespace  = kubernetes_namespace.argocd.metadata[0].name
+  namespace  = kubernetes_namespace.argocd[0].metadata[0].name
   version    = "5.51.2" # recent version
 
 
@@ -102,7 +102,7 @@ data "kubernetes_secret_v1" "argocd_initial_admin_secret" {
 
   metadata {
     name      = "argocd-initial-admin-secret"
-    namespace = kubernetes_namespace.argocd.metadata[0].name
+    namespace = kubernetes_namespace.argocd[0].metadata[0].name
   }
 }
 
@@ -113,7 +113,7 @@ resource "kubernetes_job" "argocd_pre_delete_cleanup" {
 
   metadata {
     name      = "argocd-cleanup-finalizers"
-    namespace = kubernetes_namespace.argocd.metadata[0].name
+    namespace = kubernetes_namespace.argocd[0].metadata[0].name
     annotations = {
       # This Helm hook tells it to run BEFORE the release is deleted
       "helm.sh/hook" = "pre-delete"
