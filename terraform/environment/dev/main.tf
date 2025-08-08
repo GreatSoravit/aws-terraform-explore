@@ -50,6 +50,13 @@ resource "helm_release" "aws_load_balancer_controller" {
   ]
 }
 
+resource "kubernetes_namespace" "argocd" {
+  # set name space for argocd	
+  metadata {
+    name = "argocd"
+  }
+}
+
 resource "helm_release" "argocd" {
   count = var.enable_argocd ? 1 : 0
   provider = helm.eks
@@ -58,10 +65,9 @@ resource "helm_release" "argocd" {
   name       = "argocd"
   repository = "https://argoproj.github.io/argo-helm"
   chart      = "argo-cd"
-  namespace  = "argocd"
+  namespace  = kubernetes_namespace.argocd.metadata[0].name
   version    = "5.51.2" # recent version
 
-  create_namespace = true
 
   # make the server accessible with HTTP:
   set {
@@ -89,22 +95,22 @@ data "kubernetes_secret_v1" "argocd_initial_admin_secret" {
   provider = kubernetes.eks
   
   # fully installed before trying to read the secret
-  depends_on = [helm_release.argocd]
+  depends_on = [helm_release.argocd, kubernetes_namespace.argocd]
 
   metadata {
     name      = "argocd-initial-admin-secret"
-    namespace = "argocd"
+    namespace = kubernetes_namespace.argocd.metadata[0].name
   }
 }
 
-resource "kubernetes_job" "argocd_pre_delete_cleanup" {
+resource " " "argocd_pre_delete_cleanup" {
   # This depends on the same conditional as your Argo CD release
   count = var.enable_argocd ? 1 : 0
   provider = kubernetes.eks
 
   metadata {
     name      = "argocd-cleanup-finalizers"
-    namespace = "argocd"
+    namespace = kubernetes_namespace.argocd.metadata[0].name
     annotations = {
       # This Helm hook tells it to run BEFORE the release is deleted
       "helm.sh/hook" = "pre-delete"
@@ -132,4 +138,5 @@ resource "kubernetes_job" "argocd_pre_delete_cleanup" {
       }
     }
   }
+ depends_on = [helm_release.argocd, kubernetes_namespace.argocd]   
 }
