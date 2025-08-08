@@ -37,7 +37,6 @@ provider "helm" {
       args        = ["eks", "get-token", "--cluster-name", module.dev.cluster_name]
       command     = "aws"
     }
-	depends_on = [module.dev]
   }
 }
 

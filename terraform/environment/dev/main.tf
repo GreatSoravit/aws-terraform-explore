@@ -29,6 +29,9 @@ resource "helm_release" "metrics_server" {
     name  = "args"
     value = "{--kubelet-insecure-tls, --kubelet-preferred-address-types=InternalIP}"
   }
+  depends_on = [
+    module.dev
+  ]
 }
 
 # Installs the AWS Load Balancer Controller using its Helm chart
@@ -145,7 +148,7 @@ data "http" "argocd_ingress_manifest" {
 resource "kubernetes_manifest" "argocd_ingress" {
   provider   = kubernetes.eks
   manifest 	 = yamldecode(data.http.argocd_ingress_manifest.response_body)
-  depends_on = [helm_release.argocd]
+  depends_on = [helm_release.argocd, module.dev]
 }
 
 data "http" "webapp_application_manifest" {
@@ -156,5 +159,5 @@ data "http" "webapp_application_manifest" {
 resource "kubernetes_manifest" "webapp_application" {
   provider   = kubernetes.eks
   manifest 	 = yamldecode(data.http.webapp_application_manifest.response_body)
-  depends_on = [helm_release.argocd]
+  depends_on = [helm_release.argocd, module.dev]
 }
