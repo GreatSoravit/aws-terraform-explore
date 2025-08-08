@@ -146,6 +146,7 @@ data "http" "argocd_ingress_manifest" {
 }
 
 resource "kubernetes_manifest" "argocd_ingress" {
+  count = var.enable_argocd ? 1 : 0
   provider   = kubernetes.eks
   manifest 	 = yamldecode(data.http.argocd_ingress_manifest.response_body)
   depends_on = [helm_release.argocd, module.dev]
@@ -157,6 +158,7 @@ data "http" "webapp_application_manifest" {
 }
 
 resource "kubernetes_manifest" "webapp_application" {
+  count = var.enable_argocd ? 1 : 0
   provider   = kubernetes.eks
   manifest 	 = yamldecode(data.http.webapp_application_manifest.response_body)
   depends_on = [helm_release.argocd, module.dev]
