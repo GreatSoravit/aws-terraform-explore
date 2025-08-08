@@ -101,7 +101,7 @@ jobs:
         run: |
           kubectl apply -f kubernetes/argocd-ingress.yaml        
           
-       - name: Checkout GitOps Manifests Repo
+      - name: Checkout GitOps Manifests Repo
         if: github.ref == 'refs/heads/v2.00-argocd' && github.event_name == 'push'
         uses: actions/checkout@v4
         with:
