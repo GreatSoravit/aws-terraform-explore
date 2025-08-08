@@ -99,7 +99,7 @@ jobs:
         if: github.ref == 'refs/heads/v2.00-argocd' && github.event_name == 'push'
         run: aws eks update-kubeconfig --region ap-southeast-7 --name dev-eks-cluster
 
-      - name: 'Apply Argo CD Ingress'
+      - name: Apply Argo CD Ingress
         # This step runs after the cluster is ready
         run: |
           kubectl apply -f kubernetes/argocd-ingress.yaml        
