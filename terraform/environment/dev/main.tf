@@ -63,11 +63,20 @@ resource "helm_release" "argocd" {
 
   create_namespace = true
 
-  # make the server accessible via a LoadBalancer:
+  # make the server accessible with HTTP:
   set {
     name  = "server.service.type"
-    value = "LoadBalancer"
+    value = "ClusterIP"
   }
+  
+  # make the argo cd not redirect to HTTPS
+  values = [
+    <<-EOF
+    configs:
+      params:
+        server.insecure: "true"
+    EOF
+  ]
   
   # Ensures the EKS cluster is ready before trying to install argocd
   depends_on = [
