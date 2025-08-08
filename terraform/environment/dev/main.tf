@@ -19,6 +19,8 @@ data "aws_eks_cluster_auth" "this" {
 
 # Install metric service for kube-system
 resource "helm_release" "metrics_server" {
+  provider = helm.eks
+  
   name       = "metrics-server"
   namespace  = "kube-system"
   repository = "https://kubernetes-sigs.github.io/metrics-server/"

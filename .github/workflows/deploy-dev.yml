@@ -84,10 +84,9 @@ jobs:
         id: apply
         if: github.ref == 'refs/heads/v2.00-argocd' && github.event_name == 'push'
         run: terraform apply -auto-approve tfplan
-        # --- IMPORTANT: This points to your DEV environment ---
         working-directory: terraform/environment/dev
 
-      # --- Application Deployment Steps ---
+      # --- Bootstrap Argo CD and Application using kubectl ---
       # These steps will only run after a successful 'terraform apply' on a push to v2.00-argocd.
       - name: Install kubectl
         if: github.ref == 'refs/heads/v2.00-argocd' && github.event_name == 'push'
@@ -95,20 +94,27 @@ jobs:
           curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
           chmod +x ./kubectl
           sudo mv ./kubectl /usr/local/bin/kubectl
-
+      
       - name: Configure kubectl
         if: github.ref == 'refs/heads/v2.00-argocd' && github.event_name == 'push'
         run: aws eks update-kubeconfig --region ap-southeast-7 --name dev-eks-cluster
 
- #     - name: 'Apply Argo CD Ingress'
- #       # This step runs after the cluster is ready
- #       run: |
- #         kubectl apply -f kubernetes/argocd-ingress.yaml        
+      - name: 'Apply Argo CD Ingress'
+        # This step runs after the cluster is ready
+        run: |
+          kubectl apply -f kubernetes/argocd-ingress.yaml        
           
+       - name: Checkout GitOps Manifests Repo
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: actions/checkout@v4
+        with:
+          repository: GreatSoravit/aws-argocd-explore
+          path: .
+          
+      - name: Apply Argo CD Application
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: kubectl apply -f webapp-application.yaml
+        
  #     - name: Create Namespace
  #       if: github.ref == 'refs/heads/v2.00-argocd' && github.event_name == 'push'
  #       run: kubectl create namespace webapp --dry-run=client -o yaml | kubectl apply -f -
-
- #     - name: Deploy Application to EKS
- #       if: github.ref == 'refs/heads/v2.00-argocd' && github.event_name == 'push'
- #       run: kubectl apply -f terraform/my-app-deployment.yaml -n webapp
