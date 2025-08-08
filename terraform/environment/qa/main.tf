@@ -17,19 +17,6 @@ data "aws_eks_cluster_auth" "this" {
   name = module.qa.cluster_name
 }
 
-data "http" "metrics_server_manifest" {
-  url = "https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml"
-}
-
-resource "kubernetes_manifest" "metrics_server" {
-  provider = kubernetes.eks
-  
-  manifest = data.http.metrics_server_manifest.response_body
-  depends_on = [
-    module.qa
-  ]
-}
-
 # Installs the AWS Load Balancer Controller using its Helm chart
 resource "helm_release" "aws_load_balancer_controller" {
   provider = helm.eks
