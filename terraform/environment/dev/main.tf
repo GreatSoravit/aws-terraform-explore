@@ -17,6 +17,20 @@ data "aws_eks_cluster_auth" "this" {
   name = module.dev.cluster_name
 }
 
+# Install metric service for kube-system
+resource "helm_release" "metrics_server" {
+  name       = "metrics-server"
+  namespace  = "kube-system"
+  repository = "https://kubernetes-sigs.github.io/metrics-server/"
+  chart      = "metrics-server"
+  version    = "3.13.0" # Check for latest version: https://artifacthub.io/packages/helm/metrics-server/metrics-server
+
+  set {
+    name  = "args"
+    value = "{--kubelet-insecure-tls, --kubelet-preferred-address-types=InternalIP}"
+  }
+}
+
 # Installs the AWS Load Balancer Controller using its Helm chart
 resource "helm_release" "aws_load_balancer_controller" {
   provider = helm.eks
@@ -123,22 +137,6 @@ resource "kubernetes_job" "argocd_pre_delete_cleanup" {
 }
 
 #------------------------------------MANIFEST#------------------------------------
-data "http" "metrics_server_manifest" {
-  # kubernetes metrics	
-  url = "https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml"
-}
-
-resource "kubernetes_manifest" "metrics_server" {
-  for_each = {
-    for idx, doc in split("\n---", data.http.metrics_server_manifest.response_body) :
-    idx => yamldecode(doc)
-  }
-
-  manifest = each.value
-  provider = kubernetes.eks
-  depends_on = [module.dev]
-}
-
 data "http" "argocd_ingress_manifest" {
   # Argocd ingress manifest
   url = "https://raw.githubusercontent.com/GreatSoravit/aws-terraform-explore/v2.00-argocd/kubernetes/argocd-ingress.yaml"
