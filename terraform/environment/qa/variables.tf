@@ -40,3 +40,9 @@ variable "enable_node_sg" {
   description = "Enable create node of security group"
   type        = bool
 }
+
+variable "enable_argocd" {
+  description = "If true, deploy the Argo CD Helm chart."
+  type        = bool
+  default     = true
+}

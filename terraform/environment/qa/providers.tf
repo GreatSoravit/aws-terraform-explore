@@ -18,3 +18,24 @@ terraform {
 provider "aws" {
   region = "ap-southeast-7" # Thailand Region
 }
+
+provider "kubernetes" {
+  alias					 = "eks"
+  host                   = module.qa.cluster_endpoint
+  cluster_ca_certificate = base64decode(module.qa.cluster_certificate_authority_data)
+  token                  = data.aws_eks_cluster_auth.this.token
+}
+
+provider "helm" {
+  alias = "eks"
+  kubernetes {
+    host                   = module.qa.cluster_endpoint
+    cluster_ca_certificate = base64decode(module.qa.cluster_certificate_authority_data)
+    #token                  = data.aws_eks_cluster_auth.this.token
+	exec {
+      api_version = "client.authentication.k8s.io/v1beta1"
+      args        = ["eks", "get-token", "--cluster-name", module.qa.cluster_name]
+      command     = "aws"
+    }
+  }
+}

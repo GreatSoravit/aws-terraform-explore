@@ -84,19 +84,6 @@ resource "helm_release" "argocd" {
   ]
 }
 
-data "kubernetes_secret_v1" "argocd_initial_admin_secret" {
-  count = var.enable_argocd ? 1 : 0
-  provider = kubernetes.eks
-  
-  # fully installed before trying to read the secret
-  depends_on = [helm_release.argocd]
-
-  metadata {
-    name      = "argocd-initial-admin-secret"
-    namespace = "argocd"
-  }
-}
-
 resource "kubernetes_job" "argocd_pre_delete_cleanup" {
   # This depends on the same conditional as your Argo CD release
   count = var.enable_argocd ? 1 : 0
@@ -117,7 +104,7 @@ resource "kubernetes_job" "argocd_pre_delete_cleanup" {
         name = "argocd-cleanup-pod"
       }	
       spec {
-        service_account_name = "argocd-server" # Use an account with patch/delete rights
+        service_account_name = "argocd-server"
         container {
           name  = "cleanup"
           image = "bitnami/kubectl" # Use a kubectl image
@@ -133,4 +120,40 @@ resource "kubernetes_job" "argocd_pre_delete_cleanup" {
     }
   }
  depends_on = [helm_release.argocd]   
+}
+
+#------------------------------------MANIFEST#------------------------------------
+data "http" "metrics_server_manifest" {
+  # kubernetes metrics	
+  url = "https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml"
+}
+
+resource "kubernetes_manifest" "metrics_server" {
+  provider 	 = kubernetes.eks
+  manifest   = data.http.metrics_server_manifest.response_body
+  depends_on = [module.dev]
+}
+
+data "http" "argocd_ingress_manifest" {
+  # Argocd ingress manifest
+  url = "https://raw.githubusercontent.com/GreatSoravit/aws-terraform-explore/v2.00-argocd/kubernetes/argocd-ingress.yaml"
+}
+
+
+resource "kubernetes_manifest" "argocd_ingress" {
+  provider 	 = helm.eks
+  manifest 	 = yamldecode(data.http.argocd_ingress_manifest.response_body)
+  depends_on = [helm_release.argocd]
+}
+
+data "http" "webapp_application_manifest" {
+  # Argocd manifest link with githubs for GitOps
+  url = "https://raw.githubusercontent.com/GreatSoravit/aws-argocd-explore/main/webapp-application.yaml"
+}
+
+
+resource "kubernetes_manifest" "webapp_application" {
+  provider 	 = helm.eks
+  manifest 	 = yamldecode(data.http.webapp_application_manifest.response_body)
+  depends_on = [helm_release.argocd]
 }

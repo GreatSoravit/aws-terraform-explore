@@ -1,7 +1,7 @@
 module "qa" {
     source = "../../module/"
 
-    # Setup variable for dev environment 
+    # Setup variable for qa environment 
     instance_type                         = var.instance_type
     min_size                              = var.min_size
     max_size                              = var.max_size
@@ -17,25 +17,17 @@ data "aws_eks_cluster_auth" "this" {
   name = module.qa.cluster_name
 }
 
-provider "kubernetes" {
-  alias = "eks"
-  host                   = module.qa.cluster_endpoint
-  cluster_ca_certificate = base64decode(module.qa.cluster_certificate_authority_data)
-  token                  = data.aws_eks_cluster_auth.this.token
+data "http" "metrics_server_manifest" {
+  url = "https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml"
 }
 
-provider "helm" {
-  alias = "eks"
-  kubernetes {
-    host                   = module.qa.cluster_endpoint
-    cluster_ca_certificate = base64decode(module.qa.cluster_certificate_authority_data)
-    #token                 = data.aws_eks_cluster_auth.this.token
-	exec {
-      api_version = "client.authentication.k8s.io/v1beta1"
-      args        = ["eks", "get-token", "--cluster-name", module.qa.cluster_name]
-      command     = "aws"
-    }
-  }
+resource "kubernetes_manifest" "metrics_server" {
+  provider = kubernetes.eks
+  
+  manifest = data.http.metrics_server_manifest.response_body
+  depends_on = [
+    module.qa
+  ]
 }
 
 # Installs the AWS Load Balancer Controller using its Helm chart
@@ -69,4 +61,112 @@ resource "helm_release" "aws_load_balancer_controller" {
   depends_on = [
     module.qa
   ]
+}
+
+resource "helm_release" "argocd" {
+  count = var.enable_argocd ? 1 : 0
+  provider = helm.eks
+  timeout = 600
+  
+  name       = "argocd"
+  repository = "https://argoproj.github.io/argo-helm"
+  chart      = "argo-cd"
+  namespace  = "argocd"
+  version    = "5.51.2" # recent version
+
+  create_namespace  = true
+
+  # make the server accessible with HTTP:
+  set {
+    name  = "server.service.type"
+    value = "ClusterIP"
+  }
+  
+  # make the argo cd not redirect to HTTPS
+  values = [
+    <<-EOF
+    configs:
+      params:
+        server.insecure: "true"
+    EOF
+  ]
+  
+  # Ensures the EKS cluster is ready before trying to install argocd
+  depends_on = [
+    module.qa
+  ]
+}
+
+resource "kubernetes_job" "argocd_pre_delete_cleanup" {
+  # This depends on the same conditional as your Argo CD release
+  count = var.enable_argocd ? 1 : 0
+  provider = kubernetes.eks
+
+  metadata {
+    name      = "argocd-cleanup-finalizers"
+    namespace = "argocd"
+    annotations = {
+      # This Helm hook tells it to run BEFORE the release is deleted
+      "helm.sh/hook" = "pre-delete"
+      "helm.sh/hook-delete-policy" = "hook-succeeded"
+    }
+  }
+  spec {
+    template {
+	  metadata {
+        name = "argocd-cleanup-pod"
+      }	
+      spec {
+        service_account_name = "argocd-server"
+        container {
+          name  = "cleanup"
+          image = "bitnami/kubectl" # Use a kubectl image
+          command = [
+            "/bin/sh",
+            "-c",
+            # This script finds all applications and removes their finalizers
+            "kubectl patch applications --all -n argocd -p '{\"metadata\":{\"finalizers\":[]}}' --type=merge; kubectl delete applications --all -n argocd"
+          ]
+        }
+        restart_policy = "Never"
+      }
+    }
+  }
+ depends_on = [helm_release.argocd]   
+}
+
+#------------------------------------MANIFEST#------------------------------------
+data "http" "metrics_server_manifest" {
+  # kubernetes metrics	
+  url = "https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml"
+}
+
+resource "kubernetes_manifest" "metrics_server" {
+  provider 	 = kubernetes.eks
+  manifest   = data.http.metrics_server_manifest.response_body
+  depends_on = [module.qa]
+}
+
+data "http" "argocd_ingress_manifest" {
+  # Argocd ingress manifest
+  url = "https://raw.githubusercontent.com/GreatSoravit/aws-terraform-explore/v2.00-argocd/kubernetes/argocd-ingress.yaml"
+}
+
+
+resource "kubernetes_manifest" "argocd_ingress" {
+  provider 	 = helm.eks
+  manifest 	 = yamldecode(data.http.argocd_ingress_manifest.response_body)
+  depends_on = [helm_release.argocd]
+}
+
+data "http" "webapp_application_manifest" {
+  # Argocd manifest link with githubs for GitOps
+  url = "https://raw.githubusercontent.com/GreatSoravit/aws-argocd-explore/main/webapp-application.yaml"
+}
+
+
+resource "kubernetes_manifest" "webapp_application" {
+  provider 	 = helm.eks
+  manifest 	 = yamldecode(data.http.webapp_application_manifest.response_body)
+  depends_on = [helm_release.argocd]
 }
