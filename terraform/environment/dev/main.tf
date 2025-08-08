@@ -91,6 +91,7 @@ data "kubernetes_secret_v1" "argocd_initial_admin_secret" {
 resource "kubernetes_job" "argocd_pre_delete_cleanup" {
   # This depends on the same conditional as your Argo CD release
   count = var.enable_argocd ? 1 : 0
+  provider = kubernetes.eks
 
   metadata {
     name      = "argocd-cleanup-finalizers"
