@@ -1,7 +1,7 @@
 module "dev" {
     source = "../../module/"
 
-    # Setup variable for dev environment 
+    # Setup variable for dev environment  
     instance_type                         = var.instance_type
     min_size                              = var.min_size
     max_size                              = var.max_size
