@@ -52,13 +52,11 @@ jobs:
       - name: Terraform Init
         id: init
         run: terraform init
-        # --- IMPORTANT: This points to your DEV environment ---
         working-directory: terraform/environment/dev
 
       - name: Terraform Plan
         id: plan
         run: terraform plan -no-color -out=tfplan
-        # --- IMPORTANT: This points to your DEV environment ---
         working-directory: terraform/environment/dev
 
       # If this is a Pull Request, add the plan output as a comment
@@ -100,19 +98,18 @@ jobs:
         run: aws eks update-kubeconfig --region ap-southeast-7 --name dev-eks-cluster
 
       - name: Apply Argo CD Ingress
-        # This step runs after the cluster is ready
         run: |
           kubectl apply -f kubernetes/argocd-ingress.yaml        
           
        - name: Checkout GitOps Manifests Repo
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        if: github.ref == 'refs/heads/v2.00-argocd' && github.event_name == 'push'
         uses: actions/checkout@v4
         with:
           repository: GreatSoravit/aws-argocd-explore
           path: .
           
       - name: Apply Argo CD Application
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        if: github.ref == 'refs/heads/v2.00-argocd' && github.event_name == 'push'
         run: kubectl apply -f webapp-application.yaml
         
  #     - name: Create Namespace
