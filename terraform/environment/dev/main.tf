@@ -139,27 +139,3 @@ resource "kubernetes_job" "argocd_pre_delete_cleanup" {
  depends_on = [helm_release.argocd]   
 }
 
-#------------------------------------MANIFEST#------------------------------------
-data "http" "argocd_ingress_manifest" {
-  # Argocd ingress manifest
-  url = "https://raw.githubusercontent.com/GreatSoravit/aws-terraform-explore/v2.00-argocd/kubernetes/argocd-ingress.yaml"
-}
-
-resource "kubernetes_manifest" "argocd_ingress" {
-  count = var.enable_argocd ? 1 : 0
-  provider   = kubernetes.eks
-  manifest 	 = yamldecode(data.http.argocd_ingress_manifest.response_body)
-  depends_on = [helm_release.argocd, module.dev]
-}
-
-data "http" "webapp_application_manifest" {
-  # Argocd manifest link with githubs for GitOps
-  url = "https://raw.githubusercontent.com/GreatSoravit/aws-argocd-explore/main/webapp-application.yaml"
-}
-
-resource "kubernetes_manifest" "webapp_application" {
-  count = var.enable_argocd ? 1 : 0
-  provider   = kubernetes.eks
-  manifest 	 = yamldecode(data.http.webapp_application_manifest.response_body)
-  depends_on = [helm_release.argocd, module.dev]
-}
