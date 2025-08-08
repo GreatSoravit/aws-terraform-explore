@@ -142,9 +142,8 @@ data "http" "argocd_ingress_manifest" {
   url = "https://raw.githubusercontent.com/GreatSoravit/aws-terraform-explore/v2.00-argocd/kubernetes/argocd-ingress.yaml"
 }
 
-
 resource "kubernetes_manifest" "argocd_ingress" {
-  provider = kubernetes.eks
+  provider   = kubernetes.eks
   manifest 	 = yamldecode(data.http.argocd_ingress_manifest.response_body)
   depends_on = [helm_release.argocd]
 }
@@ -155,7 +154,7 @@ data "http" "webapp_application_manifest" {
 }
 
 resource "kubernetes_manifest" "webapp_application" {
-  provider = kubernetes.eks
+  provider   = kubernetes.eks
   manifest 	 = yamldecode(data.http.webapp_application_manifest.response_body)
   depends_on = [helm_release.argocd]
 }
