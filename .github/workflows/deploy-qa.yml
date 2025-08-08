@@ -96,9 +96,9 @@ jobs:
           chmod +x ./kubectl
           sudo mv ./kubectl /usr/local/bin/kubectl
 
-#      - name: Configure kubectl
-#        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-#        run: aws eks update-kubeconfig --region ap-southeast-7 --name qa-eks-cluster
+      - name: Configure kubectl
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: aws eks update-kubeconfig --region ap-southeast-7 --name qa-eks-cluster
 
 #      - name: Create Namespace
 #        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
