@@ -51,6 +51,9 @@ resource "helm_release" "aws_load_balancer_controller" {
 }
 
 resource "kubernetes_namespace" "argocd" {
+  count = var.enable_argocd ? 1 : 0
+  provider = kubernetes.eks
+  
   # set name space for argocd	
   metadata {
     name = "argocd"
