@@ -24,9 +24,6 @@ provider "kubernetes" {
   host                   = module.qa.cluster_endpoint
   cluster_ca_certificate = base64decode(module.qa.cluster_certificate_authority_data)
   token                  = data.aws_eks_cluster_auth.this.token
-  experiments {
-        manifest_resource = true
-  }
 }
 
 provider "helm" {
