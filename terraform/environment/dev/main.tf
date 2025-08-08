@@ -129,8 +129,13 @@ data "http" "metrics_server_manifest" {
 }
 
 resource "kubernetes_manifest" "metrics_server" {
-  provider 	 = kubernetes.eks
-  manifest   = yamldecode(data.http.metrics_server_manifest.response_body)
+  for_each = {
+    for idx, doc in split("\n---", data.http.metrics_server_manifest.response_body) :
+    idx => yamldecode(doc)
+  }
+
+  manifest = each.value
+  provider = kubernetes.eks
   depends_on = [module.dev]
 }
 
