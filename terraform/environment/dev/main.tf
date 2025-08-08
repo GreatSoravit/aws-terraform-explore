@@ -130,7 +130,7 @@ data "http" "metrics_server_manifest" {
 
 resource "kubernetes_manifest" "metrics_server" {
   provider 	 = kubernetes.eks
-  manifest   = data.http.metrics_server_manifest.response_body
+  manifest   = yamldecode(data.http.metrics_server_manifest.response_body)
   depends_on = [module.dev]
 }
 
@@ -141,7 +141,6 @@ data "http" "argocd_ingress_manifest" {
 
 
 resource "kubernetes_manifest" "argocd_ingress" {
-  provider 	 = helm.eks
   manifest 	 = yamldecode(data.http.argocd_ingress_manifest.response_body)
   depends_on = [helm_release.argocd]
 }
@@ -153,7 +152,6 @@ data "http" "webapp_application_manifest" {
 
 
 resource "kubernetes_manifest" "webapp_application" {
-  provider 	 = helm.eks
   manifest 	 = yamldecode(data.http.webapp_application_manifest.response_body)
   depends_on = [helm_release.argocd]
 }
