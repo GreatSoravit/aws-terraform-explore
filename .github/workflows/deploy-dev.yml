@@ -1,18 +1,18 @@
 name: 'Deploy to DEV Environment'
 
 on:
-  # Trigger this workflow on a push to the v2.00-argocd branch...
+  # Trigger this workflow on a push to the v3.00-mlops branch...
   push:
     branches:
-      - v2.00-argocd
+      - v3.00-mlops
     # ...but ONLY if files inside the 'dev' directory have changed.
     paths:
       - 'terraform/environment/dev/**'
 
-  # Also trigger on a pull request targeting the v2.00-argocd branch...
+  # Also trigger on a pull request targeting the v3.00-mlops branch...
   pull_request:
     branches:
-      - v2.00-argocd
+      - v3.00-mlops
     # ...but ONLY if files inside the 'dev' directory have changed.
     paths:
       - 'terraform/environment/dev/**'
@@ -77,24 +77,24 @@ jobs:
               body: output
             });
 
-      # If this is a push to the v2.00-argocd branch, run terraform apply
+      # If this is a push to the v3.00-mlops branch, run terraform apply
       - name: Terraform Apply
         id: apply
-        if: github.ref == 'refs/heads/v2.00-argocd' && github.event_name == 'push'
+        if: github.ref == 'refs/heads/v3.00-mlops' && github.event_name == 'push'
         run: terraform apply -auto-approve tfplan
         working-directory: terraform/environment/dev
 
       # --- Bootstrap Argo CD and Application using kubectl ---
-      # These steps will only run after a successful 'terraform apply' on a push to v2.00-argocd.
+      # These steps will only run after a successful 'terraform apply' on a push to v3.00-mlops.
       - name: Install kubectl
-        if: github.ref == 'refs/heads/v2.00-argocd' && github.event_name == 'push'
+        if: github.ref == 'refs/heads/v3.00-mlops' && github.event_name == 'push'
         run: |
           curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
           chmod +x ./kubectl
           sudo mv ./kubectl /usr/local/bin/kubectl
       
       - name: Configure kubectl
-        if: github.ref == 'refs/heads/v2.00-argocd' && github.event_name == 'push'
+        if: github.ref == 'refs/heads/v3.00-mlops' && github.event_name == 'push'
         run: aws eks update-kubeconfig --region ap-southeast-7 --name dev-eks-cluster
 
       - name: Apply Argo CD Ingress
@@ -102,16 +102,20 @@ jobs:
           kubectl apply -f kubernetes/argocd-ingress.yaml        
           
       - name: Checkout GitOps Manifests Repo
-        if: github.ref == 'refs/heads/v2.00-argocd' && github.event_name == 'push'
+        if: github.ref == 'refs/heads/v3.00-mlops' && github.event_name == 'push'
         uses: actions/checkout@v4
         with:
           repository: GreatSoravit/aws-argocd-explore
           path: .
           
       - name: Apply Argo CD Application
-        if: github.ref == 'refs/heads/v2.00-argocd' && github.event_name == 'push'
+        if: github.ref == 'refs/heads/v3.00-mlops' && github.event_name == 'push'
         run: kubectl apply -f webapp-application.yaml
         
+       - name: Apply Argo CD Application
+        if: github.ref == 'refs/heads/v3.00-mlops' && github.event_name == 'push'
+        run: kubectl apply -f training-job-application.yaml
+        
  #     - name: Create Namespace
- #       if: github.ref == 'refs/heads/v2.00-argocd' && github.event_name == 'push'
+ #       if: github.ref == 'refs/heads/v3.00-mlops' && github.event_name == 'push'
  #       run: kubectl create namespace webapp --dry-run=client -o yaml | kubectl apply -f -

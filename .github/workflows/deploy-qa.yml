@@ -52,13 +52,11 @@ jobs:
       - name: Terraform Init
         id: init
         run: terraform init
-        # --- IMPORTANT: This points to your QA environment ---
         working-directory: terraform/environment/qa
 
       - name: Terraform Plan
         id: plan
         run: terraform plan -no-color -out=tfplan
-        # --- IMPORTANT: This points to your QA environment ---
         working-directory: terraform/environment/qa
 
       # If this is a Pull Request, add the plan output as a comment
@@ -113,7 +111,11 @@ jobs:
       - name: Apply Argo CD Application
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: kubectl apply -f webapp-application.yaml  
-          
+
+       - name: Apply Argo CD Application
+        if: github.ref == 'refs/heads/v3.00-mlops' && github.event_name == 'push'
+        run: kubectl apply -f training-job-application.yaml
+        
 #      - name: Create Namespace
 #        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 #        run: kubectl create namespace webapp --dry-run=client -o yaml | kubectl apply -f -

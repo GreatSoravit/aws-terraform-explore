@@ -15,10 +15,16 @@ resource "aws_key_pair" "eks_node_key" {
 #  owners = ["121268973566"] 
 #}
 
+# add new ami that use gpu for train model in mlops
+data "aws_ssm_parameter" "eks_gpu_ami" {
+  name = "/aws/service/eks/optimized-ami/1.32/amazon-linux-2-gpu/recommended/image_id"
+}
+
 # launch template for eks_node
 resource "aws_launch_template" "eks_nodes" {
   name_prefix   = "${var.environment.name}-eks-nodes"
-  #image_id      = data.aws_ami.eks_worker.id
+  #image_id     = data.aws_ami.eks_worker.id
+  image_id 		= data.aws_ssm_parameter.eks_gpu_ami.value
   instance_type = var.instance_type
   key_name      = aws_key_pair.eks_node_key.key_name 
 
