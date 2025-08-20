@@ -107,7 +107,7 @@ module "eks" {
   eks_managed_node_groups = {
     "${var.environment.name}-node" = {
       subnet_ids              = module.vpc.public_subnets
-      version                 = var.cluster_version
+      #version                 = var.cluster_version # AMI don't need to specify version
       min_size                = var.min_size
       max_size                = var.max_size
       desired_size            = var.desired_size
