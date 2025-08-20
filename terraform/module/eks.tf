@@ -107,7 +107,8 @@ module "eks" {
   eks_managed_node_groups = {
     "${var.environment.name}-node" = {
       subnet_ids              = module.vpc.public_subnets
-      #version                 = var.cluster_version # AMI don't need to specify version
+      version                 = null
+      #version                = var.cluster_version # AMI don't need to specify version
       min_size                = var.min_size
       max_size                = var.max_size
       desired_size            = var.desired_size
@@ -118,8 +119,8 @@ module "eks" {
       create_launch_template     = false
       use_custom_launch_template = true
 
-      launch_template_id      = aws_launch_template.eks_nodes.id
-      launch_template_version = aws_launch_template.eks_nodes.latest_version    
+      launch_template_id         = aws_launch_template.eks_nodes.id
+      launch_template_version    = aws_launch_template.eks_nodes.latest_version    
 
       update_config = {
         max_unavailable_percentage = 33
