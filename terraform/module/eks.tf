@@ -108,6 +108,7 @@ module "eks" {
     "${var.environment.name}-node" = {
       ami_type = "AL2_x86_64_GPU"
       ami_id   = data.aws_ssm_parameter.eks_gpu_ami.value
+      instance_types = [var.instance_type]
       
       subnet_ids              = module.vpc.public_subnets
       version                 = null
@@ -118,10 +119,9 @@ module "eks" {
 	  
 	  # Use spot instance for development project where interruption are not critical
 	  capacity_type 		  = "SPOT"
-	  instance_types = [var.instance_type]
-      
-      create_launch_template     = false
-      use_custom_launch_template = true
+	  
+      #create_launch_template     = false
+      #use_custom_launch_template = true
       
       #launch_template_id         = aws_launch_template.eks_nodes.id
       #launch_template_version    = aws_launch_template.eks_nodes.latest_version    
