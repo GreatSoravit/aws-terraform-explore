@@ -13,7 +13,7 @@ resource "aws_key_pair" "eks_node_key" {
 #    values = ["amazon-eks-node-${var.cluster_version}-v*"]
 #  }
 #  owners = ["121268973566"] 
-#}
+#} 
 
 # add new ami that use gpu for train model in mlops
 data "aws_ssm_parameter" "eks_gpu_ami" {
