@@ -112,7 +112,7 @@ jobs:
         if: github.ref == 'refs/heads/v3.00-mlops' && github.event_name == 'push'
         run: kubectl apply -f webapp-application.yaml
         
-       - name: Apply Argo CD Application
+      - name: Apply Argo CD Application
         if: github.ref == 'refs/heads/v3.00-mlops' && github.event_name == 'push'
         run: kubectl apply -f training-job-application.yaml
         
