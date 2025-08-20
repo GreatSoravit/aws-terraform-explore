@@ -110,6 +110,9 @@ module "eks" {
       ami_id   = data.aws_ssm_parameter.eks_gpu_ami.value
       instance_types = [var.instance_type]
       
+      # EKS bootstrap scrip
+      bootstrap_extra_args = "--kubelet-extra-args '--node-labels=eks.amazonaws.com/capacityType=SPOT'"
+
       subnet_ids              = module.vpc.public_subnets
       version                 = null
       #version                = var.cluster_version # AMI don't need to specify version
