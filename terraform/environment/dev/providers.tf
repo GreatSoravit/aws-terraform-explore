@@ -26,7 +26,7 @@ provider "kubernetes" {
   #token                  = data.aws_eks_cluster_auth.this.token
   exec {
     api_version = "client.authentication.k8s.io/v1beta1"
-    args        = ["eks", "get-token", "--cluster-name", module.dev.cluster_name]
+    args        = ["eks", "get-token", "--cluster-name", module.dev.cluster_name, "--region", "ap-northeast-2"]
     command     = "aws"
   }
 }
@@ -39,9 +39,8 @@ provider "helm" {
     #token                  = data.aws_eks_cluster_auth.this.token
 	exec {
       api_version = "client.authentication.k8s.io/v1beta1"
-      args        = ["eks", "get-token", "--cluster-name", module.dev.cluster_name]
+	  args        = ["eks", "get-token", "--cluster-name", module.dev.cluster_name, "--region", "ap-northeast-2"]
       command     = "aws"
     }
   }
 }
-

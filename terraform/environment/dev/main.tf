@@ -1,7 +1,7 @@
 module "dev" {
     source = "../../module/"
 
-    # Setup variable for dev environment
+    # Setup variable for dev environment 
     instance_type                         = var.instance_type
     min_size                              = var.min_size
     max_size                              = var.max_size
@@ -41,7 +41,7 @@ resource "helm_release" "metrics_server" {
 
 # Installs the AWS Load Balancer Controller using its Helm chart
 resource "helm_release" "aws_load_balancer_controller" {
-  provider = helm.eks
+  provider   = helm.eks
   
   name       = "aws-load-balancer-controller"
   repository = "https://aws.github.io/eks-charts"

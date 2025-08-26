@@ -95,7 +95,7 @@ jobs:
       
       - name: Configure kubectl
         if: github.ref == 'refs/heads/v3.00-mlops' && github.event_name == 'push'
-        run: aws eks update-kubeconfig --region ap-southeast-7 --name dev-eks-cluster
+        run: aws eks update-kubeconfig --region ap-northeast-2 --name dev-eks-cluster
 
       - name: Apply Argo CD Ingress
         run: |
