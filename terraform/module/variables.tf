@@ -58,3 +58,21 @@ variable "eks_node_public_key" {
   description = "The public key material for the EKS node key pair."
   type        = string
 } 
+
+variable "use_custom_ami" {
+  description = "Whether to use a custom AMI with a launch template. Set to true to disable setting Kubernetes version and related fields."
+  type        = bool
+  default     = false
+}
+
+variable "ami_type" {
+  description = "The AMI type to use for the EKS managed node group"
+  type        = string
+  default     = "AL2_x86_64_GPU"
+}
+
+variable "ami_release_version" {
+  description = "The release version of the AMI to use"
+  type        = string
+  default     = null
+}
