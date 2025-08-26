@@ -107,13 +107,13 @@ module "eks" {
   eks_managed_node_groups = {
     "${var.environment.name}-node" = {
       #ami_type = "CUSTOM" #"AL2_x86_64_GPU" #AL2023_x86_64_NVIDIA
-      #ami_id   = data.aws_ssm_parameter.eks_gpu_ami.value
+      ami_id   = data.aws_ssm_parameter.eks_gpu_ami.value
       #instance_types = [var.instance_type]
       
       # EKS bootstrap scrip *using launch template ignore this command*
       #bootstrap_extra_args = "--kubelet-extra-args '--node-labels=eks.amazonaws.com/capacityType=SPOT'"
-      key_name                = aws_key_pair.eks_node_key.key_name 
-      disk_size               = 50
+      #key_name                = aws_key_pair.eks_node_key.key_name 
+      #disk_size               = 50
       
       subnet_ids              = module.vpc.public_subnets
       #version                 = null
@@ -130,11 +130,7 @@ module "eks" {
       
       launch_template_id         = aws_launch_template.eks_nodes.id
       launch_template_version    = aws_launch_template.eks_nodes.latest_version    
-      
-      version                    = var.use_custom_ami ? null : var.cluster_version
-      ami_type                   = var.use_custom_ami ? null : var.ami_type
-      release_version            = var.use_custom_ami ? null : var.ami_release_version
-    
+
       update_config = {
         max_unavailable_percentage = 60
       }
