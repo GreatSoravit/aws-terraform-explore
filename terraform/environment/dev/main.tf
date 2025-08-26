@@ -1,7 +1,7 @@
 module "dev" {
     source = "../../module/"
 
-    # Setup variable for dev environment
+    # Setup variable for dev environment 
     instance_type                         = var.instance_type
     min_size                              = var.min_size
     max_size                              = var.max_size
@@ -19,7 +19,7 @@ data "aws_eks_cluster_auth" "this" {
 
 # Install metric service for kube-system
 resource "helm_release" "metrics_server" {
-  provider = helm.eks
+  provider   = helm.eks
   
   name       = "metrics-server"
   namespace  = "kube-system"
@@ -70,9 +70,9 @@ resource "helm_release" "aws_load_balancer_controller" {
 }
 
 resource "helm_release" "argocd" {
-  count = var.enable_argocd ? 1 : 0
+  count    = var.enable_argocd ? 1 : 0
   provider = helm.eks
-  timeout = 600
+  timeout  = 600
   
   name       = "argocd"
   repository = "https://argoproj.github.io/argo-helm"
@@ -104,8 +104,8 @@ resource "helm_release" "argocd" {
 }
 
 resource "kubernetes_job" "argocd_pre_delete_cleanup" {
-  # This depends on the same conditional as your Argo CD release
-  count = var.enable_argocd ? 1 : 0
+  # depends on the same conditional as Argo CD release
+  count    = var.enable_argocd ? 1 : 0
   provider = kubernetes.eks
 
   metadata {
@@ -141,3 +141,8 @@ resource "kubernetes_job" "argocd_pre_delete_cleanup" {
  depends_on = [helm_release.argocd]   
 }
 
+resource "kubectl_manifest" "argocd_ingress" {
+  provider 	 = kubernetes.eks
+  yaml_body  = file("${path.module}/kubernetes/argocd-ingress.yaml")
+  depends_on = [helm_release.argocd]
+}

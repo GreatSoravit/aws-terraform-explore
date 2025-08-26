@@ -106,13 +106,15 @@ module "eks" {
 
   eks_managed_node_groups = {
     "${var.environment.name}-node" = {
-      ami_type = "AL2_x86_64_GPU"
+      ami_type = "AL2_x86_64_GPU" #AL2023_x86_64_NVIDIA
       ami_id   = data.aws_ssm_parameter.eks_gpu_ami.value
       instance_types = [var.instance_type]
       
       # EKS bootstrap scrip
-      bootstrap_extra_args = "--kubelet-extra-args '--node-labels=eks.amazonaws.com/capacityType=SPOT'"
-
+      #bootstrap_extra_args = "--kubelet-extra-args '--node-labels=eks.amazonaws.com/capacityType=SPOT'"
+      key_name                = aws_key_pair.eks_node_key.key_name 
+      disk_size               = 50
+      
       subnet_ids              = module.vpc.public_subnets
       version                 = null
       #version                = var.cluster_version # AMI don't need to specify version
