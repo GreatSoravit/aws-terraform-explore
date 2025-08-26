@@ -116,7 +116,7 @@ module "eks" {
       disk_size               = 50
       
       subnet_ids              = module.vpc.public_subnets
-      version                 = null
+      #version                 = null
       #version                = var.cluster_version # AMI don't need to specify version
       min_size                = var.min_size
       max_size                = var.max_size
