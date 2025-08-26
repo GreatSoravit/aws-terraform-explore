@@ -106,7 +106,7 @@ module "eks" {
 
   eks_managed_node_groups = {
     "${var.environment.name}-node" = {
-      #ami_type = "AL2_x86_64_GPU" #AL2023_x86_64_NVIDIA
+      ami_type = "CUSTOM" #"AL2_x86_64_GPU" #AL2023_x86_64_NVIDIA
       #ami_id   = data.aws_ssm_parameter.eks_gpu_ami.value
       #instance_types = [var.instance_type]
       
