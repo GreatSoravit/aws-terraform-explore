@@ -46,3 +46,18 @@ variable "enable_argocd" {
   type        = bool
   default     = true
 }
+
+variable "use_custom_ami" {
+  description = "Whether to use a custom AMI with a launch template. Set to true to disable setting Kubernetes version and related fields."
+  type        = bool
+}
+
+variable "ami_type" {
+  description = "The AMI type to use for the EKS managed node group"
+  type        = string
+}
+
+variable "ami_release_version" {
+  description = "The release version of the AMI to use"
+  type        = string
+}
