@@ -140,9 +140,3 @@ resource "kubernetes_job" "argocd_pre_delete_cleanup" {
   }
  depends_on = [helm_release.argocd]   
 }
-
-resource "kubectl_manifest" "argocd_ingress" {
-  provider 	 = kubernetes.eks
-  yaml_body  = file("${path.module}/kubernetes/argocd-ingress.yaml")
-  depends_on = [helm_release.argocd]
-}

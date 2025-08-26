@@ -97,9 +97,9 @@ jobs:
         if: github.ref == 'refs/heads/v3.00-mlops' && github.event_name == 'push'
         run: aws eks update-kubeconfig --region ap-southeast-7 --name dev-eks-cluster
 
-#      - name: Apply Argo CD Ingress
-#        run: |
-#          kubectl apply -f kubernetes/argocd-ingress.yaml        
+      - name: Apply Argo CD Ingress
+        run: |
+          kubectl apply -f kubernetes/argocd-ingress.yaml        
           
       - name: Checkout GitOps Manifests Repo
         if: github.ref == 'refs/heads/v3.00-mlops' && github.event_name == 'push'
