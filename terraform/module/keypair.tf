@@ -21,13 +21,20 @@ data "aws_ssm_parameter" "eks_gpu_ami" {
 }
 
 # launch template for eks_node
-#resource "aws_launch_template" "eks_nodes" {
-#  name_prefix   = "${var.environment.name}-eks-nodes"
+resource "aws_launch_template" "eks_nodes" {
+  name_prefix   = "${var.environment.name}-eks-nodes"
   #image_id     = data.aws_ami.eks_worker.id
-#  image_id 		= data.aws_ssm_parameter.eks_gpu_ami.value
-#  instance_type = var.instance_type
-#  key_name      = aws_key_pair.eks_node_key.key_name 
+  image_id 		= data.aws_ssm_parameter.eks_gpu_ami.value
+  instance_type = var.instance_type
+  key_name      = aws_key_pair.eks_node_key.key_name 
 
+  user_data = base64encode(<<-EOT
+    #!/bin/bash
+    set -e
+    /etc/eks/bootstrap.sh ${module.eks.cluster_name} --kubelet-extra-args '--node-labels=nvidia.com/gpu=true,eks.amazonaws.com/capacityType=SPOT'
+    EOT
+  )
+  
   #vpc_security_group_ids = [
     #aws_security_group.eks_cluster_sg.id
     # module.eks.cluster_primary_security_group_id
@@ -44,11 +51,11 @@ data "aws_ssm_parameter" "eks_gpu_ami" {
 #      }
 #  }
 
-#  tag_specifications {
-#    resource_type = "instance"
-#    tags = {
-#      Name = "${var.environment.name}-aws-terraform-explore"
-#    }
-#  }
-#}
+  tag_specifications {
+    resource_type = "instance"
+    tags = {
+      Name = "${var.environment.name}-aws-terraform-explore"
+    }
+  }
+}
 #-------------------------------------------------------------------------------------

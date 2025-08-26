@@ -106,11 +106,11 @@ module "eks" {
 
   eks_managed_node_groups = {
     "${var.environment.name}-node" = {
-      ami_type = "AL2_x86_64_GPU" #AL2023_x86_64_NVIDIA
-      ami_id   = data.aws_ssm_parameter.eks_gpu_ami.value
-      instance_types = [var.instance_type]
+      #ami_type = "AL2_x86_64_GPU" #AL2023_x86_64_NVIDIA
+      #ami_id   = data.aws_ssm_parameter.eks_gpu_ami.value
+      #instance_types = [var.instance_type]
       
-      # EKS bootstrap scrip
+      # EKS bootstrap scrip *using launch template ignore this command*
       #bootstrap_extra_args = "--kubelet-extra-args '--node-labels=eks.amazonaws.com/capacityType=SPOT'"
       key_name                = aws_key_pair.eks_node_key.key_name 
       disk_size               = 50
@@ -125,11 +125,11 @@ module "eks" {
 	  # Use spot instance for development project where interruption are not critical
 	  capacity_type 		  = "SPOT"
 	  
-      #create_launch_template     = false
-      #use_custom_launch_template = true
+      create_launch_template     = false
+      use_custom_launch_template = true
       
-      #launch_template_id         = aws_launch_template.eks_nodes.id
-      #launch_template_version    = aws_launch_template.eks_nodes.latest_version    
+      launch_template_id         = aws_launch_template.eks_nodes.id
+      launch_template_version    = aws_launch_template.eks_nodes.latest_version    
 
       update_config = {
         max_unavailable_percentage = 33
