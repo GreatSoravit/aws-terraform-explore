@@ -40,16 +40,16 @@ resource "aws_launch_template" "eks_nodes" {
     # module.eks.cluster_primary_security_group_id
   #]
 
-#  block_device_mappings {
-#      device_name = "/dev/xvda"
-#      ebs {
-#        volume_size           = local.ebs_volume_sizes[var.environment.name]
-#        volume_type           = "gp3"
-#        iops                  = local.ebs_iops[var.environment.name]
-#        throughput            = local.ebs_throughput[var.environment.name]
-#        delete_on_termination = true
-#      }
-#  }
+  block_device_mappings {
+      device_name = "/dev/xvda"
+      ebs {
+        volume_size           = local.ebs_volume_sizes[var.environment.name]
+        volume_type           = "gp3"
+        iops                  = local.ebs_iops[var.environment.name]
+        throughput            = local.ebs_throughput[var.environment.name]
+        delete_on_termination = true
+      }
+  }
 
   tag_specifications {
     resource_type = "instance"
