@@ -145,6 +145,8 @@ resource "kubernetes_job" "argocd_pre_delete_cleanup" {
 }
 
 resource "kubernetes_service_account" "training_job_sa" {
+  provider = kubernetes.eks
+  
   metadata {
     name      = "training-job-sa"
     namespace = "ml-jobs"
