@@ -99,7 +99,11 @@ jobs:
 
       - name: Apply Argo CD Ingress
         run: |
-          kubectl apply -f kubernetes/argocd-ingress.yaml        
+          kubectl apply -f kubernetes/argocd-ingress.yaml     
+           
+      - name: Apply Nvidia Device Plugin
+        run: |
+          kubectl apply -f https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/v0.11.0/nvidia-device-plugin.yml
           
       - name: Checkout GitOps Manifests Repo
         if: github.ref == 'refs/heads/v3.00-mlops' && github.event_name == 'push'

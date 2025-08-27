@@ -113,7 +113,7 @@ module "eks" {
       # EKS bootstrap scrip *using launch template ignore this command*
       #bootstrap_extra_args = "--kubelet-extra-args '--node-labels=eks.amazonaws.com/capacityType=SPOT'"
       #key_name                = aws_key_pair.eks_node_key.key_name 
-      #disk_size               = 50
+      disk_size               = 60
       
       subnet_ids              = module.vpc.public_subnets
       #version                 = null

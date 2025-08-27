@@ -31,3 +31,8 @@ output "configure_kubectl" {
 output "eks_cluster_security_group_id" {
   value = module.eks.cluster_primary_security_group_id
 }
+
+output "training_job_role_arn" {
+  description = "training job role arn for serviceaccount"
+  value = aws_iam_role.training_job_role.arn
+}

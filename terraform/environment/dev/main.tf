@@ -143,3 +143,13 @@ resource "kubernetes_job" "argocd_pre_delete_cleanup" {
   }
  depends_on = [helm_release.argocd]   
 }
+
+resource "kubernetes_service_account" "training_job_sa" {
+  metadata {
+    name      = "training-job-sa"
+    namespace = "ml-jobs"
+    annotations = {
+      "eks.amazonaws.com/role-arn" = module.dev.training_job_role_arn
+    }
+  }
+}
