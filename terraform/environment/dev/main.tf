@@ -144,6 +144,14 @@ resource "kubernetes_job" "argocd_pre_delete_cleanup" {
  depends_on = [helm_release.argocd]   
 }
 
+resource "kubernetes_namespace" "ml_jobs" {
+  provider = kubernetes.eks
+
+  metadata {
+    name = "ml-jobs"
+  }
+}
+
 resource "kubernetes_service_account" "training_job_sa" {
   provider = kubernetes.eks
   
